@@ -17,7 +17,7 @@ from ctpn_utils import resize
 import config
 
 
-prob_thresh = 0.5
+prob_thresh = 0.3
 max_width = 1600
 min_width = 600
 gpu = True
@@ -80,6 +80,10 @@ def get_det_boxes(image,display = True):
         # text line-
         textConn = TextProposalConnectorOriented()
         text = textConn.get_text_lines(select_anchor, select_score, [h, w])
+        for box in select_anchor:
+            pt1 = (box[0],box[1])
+            pt2 = (box[2],box[3])
+            image_c = cv2.rectangle(image_c,pt1,pt2,(200,100,50),-1)
         # print(text)
         if display:
             for i in text:
