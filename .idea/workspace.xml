@@ -2,21 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="3ef2102a-de69-495f-865d-19e00225b846" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/topk.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/checkpoints/CTPN.pth" beforeDir="false" afterPath="$PROJECT_DIR$/checkpoints/CTPN.pth" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ctpn_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/ctpn_predict.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_result/t1.png" beforeDir="false" afterPath="$PROJECT_DIR$/test_result/t1.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_result/t1.txt" beforeDir="false" afterPath="$PROJECT_DIR$/test_result/t1.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_result/t2.png" beforeDir="false" afterPath="$PROJECT_DIR$/test_result/t2.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_result/t2.txt" beforeDir="false" afterPath="$PROJECT_DIR$/test_result/t2.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_result/t3.png" beforeDir="false" afterPath="$PROJECT_DIR$/test_result/t3.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_result/t3.txt" beforeDir="false" afterPath="$PROJECT_DIR$/test_result/t3.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_result/t4.png" beforeDir="false" afterPath="$PROJECT_DIR$/test_result/t4.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_result/t4.txt" beforeDir="false" afterPath="$PROJECT_DIR$/test_result/t4.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_result/t5.png" beforeDir="false" afterPath="$PROJECT_DIR$/test_result/t5.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_result/t5.txt" beforeDir="false" afterPath="$PROJECT_DIR$/test_result/t5.txt" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
