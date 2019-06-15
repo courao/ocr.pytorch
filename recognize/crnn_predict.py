@@ -1,13 +1,10 @@
 import torch
 from torch.autograd import Variable
-import crnn_utils
-import mydataset
 from PIL import Image
 import numpy as np
-import crnn_model as crnn
 import cv2
 import torch.nn.functional as F
-import keys
+from recognize import keys, crnn_model as crnn, mydataset, crnn_utils
 
 gpu = True
 if not torch.cuda.is_available():

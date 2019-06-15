@@ -6,7 +6,7 @@
 #'''
 import numpy as np
 import cv2
-from config import *
+from detect.config import *
 
 
 def resize(image, width=None, height=None, inter=cv2.INTER_AREA):

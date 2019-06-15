@@ -1,9 +1,8 @@
 import cv2
 from math import *
-from PIL import Image
 import numpy as np
-from ctpn_predict import get_det_boxes
-from crnn_predict import recognize_cv2_image
+from detect.ctpn_predict import get_det_boxes
+from recognize.crnn_predict import recognize_cv2_image
 
 def dis(image):
     cv2.imshow('image', image)
