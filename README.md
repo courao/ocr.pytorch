@@ -3,12 +3,12 @@
 Still under developing!  
 Only test codes are available now, training codes will come soon. 
 ### Detection
-Detection is based on [CTPN](https://arxiv.org/abs/1609.03605), some codes borrowed from 
+Detection is based on [CTPN](https://arxiv.org/abs/1609.03605), some codes are borrowed from 
 [pytorch_ctpn](https://github.com/opconty/pytorch_ctpn), several detection results: 
 ![detect1](test_result/t1.png)
 ![detect2](test_result/t2.png)
 ### Recognition
-Recognition is based on [CRNN](http://arxiv.org/abs/1507.05717), some codes borrowed from
+Recognition is based on [CRNN](http://arxiv.org/abs/1507.05717), some codes are borrowed from
 [crnn.pytorch](https://github.com/meijieru/crnn.pytorch)
 
 ### Test
