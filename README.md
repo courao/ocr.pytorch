@@ -24,7 +24,8 @@ If you want to test a single image, run
 
 ### Train
 Training codes are placed into train_code directory.  
-Training [CTPN](./train_code/train_ctpn/readme.md)
+Train [CTPN](./train_code/train_ctpn/readme.md)  
+Train [CRNN](./train_code/train_crnn/readme.md)  
 
 ### Licence
 [MIT License](https://opensource.org/licenses/MIT)
