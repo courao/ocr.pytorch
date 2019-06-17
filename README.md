@@ -1,7 +1,7 @@
 ## ocr.pytorch
 > A pure pytorch implemented ocr project.  
 Still under developing!  
-Test codes training codes for CTPN are available now and, training codes for CRNN will come soon. 
+Test codes and training codes for CTPN are available now, training codes for CRNN will come soon. 
 ### Detection
 Detection is based on [CTPN](https://arxiv.org/abs/1609.03605), some codes are borrowed from 
 [pytorch_ctpn](https://github.com/opconty/pytorch_ctpn), several detection results: 
@@ -23,7 +23,8 @@ If you want to test a single image, run
 >python3 test_one.py [filename]
 
 ### Train
-Training codes are placed into train_code directory.
+Training codes are placed into train_code directory.  
+Training [CTPN](./train_code/train_ctpn/readme.md)
 
 ### Licence
 [MIT License](https://opensource.org/licenses/MIT)
