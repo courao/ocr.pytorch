@@ -2,6 +2,20 @@
 > A pure pytorch implemented ocr project.  
 Still under developing!  
 Test codes and training codes for CTPN are available now, training codes for CRNN will come soon. 
+
+## Prerequisite
+
+- python-3.5+
+- pytorch-0.4.1+
+- torchvision-0.2.1
+- opencv-3.4.0.14
+- numpy-1.14.3
+
+
+They could all be installed through pip except pytorch and torchvision. As for pytorch and torchvision, 
+they both depends on your CUDA version, you would prefer to reading [pytorch's official site](https://pytorch.org/)
+
+
 ### Detection
 Detection is based on [CTPN](https://arxiv.org/abs/1609.03605), some codes are borrowed from 
 [pytorch_ctpn](https://github.com/opconty/pytorch_ctpn), several detection results: 
