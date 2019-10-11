@@ -18,7 +18,7 @@ import pickle as pkl
 # alphabet_list = sorted(list(alphabet_set))
 # pkl.dump(alphabet_list,open('alphabet.pkl','wb'))
 
-alphabet_list = pkl.load(open('recognize/alphabet.pkl','rb'))
+alphabet_list = pkl.load(open('alphabet.pkl','rb'))
 alphabet = [ord(ch) for ch in alphabet_list]
 alphabet_v2 = alphabet
 # print(alphabet_v2)

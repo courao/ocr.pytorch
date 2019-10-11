@@ -9,6 +9,84 @@ from datetime import datetime
 import torch.nn.functional as F
 
 
+def get_acc(output, label):
+    total = output.shape[0]
+    _, pred_label = output.max(1)
+    num_correct = (pred_label == label).sum().item()
+    # print( pred_label.data.cpu().numpy() )
+    # print( label.data.cpu().numpy() )
+    return 1.0*num_correct / total
+
+def adjust_learning_rate(optimizer,decay_rate = 0.97):
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = param_group['lr']*decay_rate
+
+def train(net, train_data, valid_data, num_epochs, optimizer, criterion,saver_freq = 50,saver_prefix = 'vgg16'):
+    if torch.cuda.is_available():
+        net = net.cuda()
+    prev_time = datetime.now()
+    best_acc = 0.98
+    for epoch in range(num_epochs):
+        train_loss = 0
+        train_acc = 0
+        net = net.train()
+        for im, label in train_data:
+            # print(label)
+            if torch.cuda.is_available():
+                im = Variable(im.cuda())  # (bs, 3, h, w)
+                label = Variable(label.cuda())  # (bs, h, w)
+            else:
+                im = Variable(im)
+                label = Variable(label)
+            # forward
+            output = net(im)
+            loss = criterion(output, label)
+            # backward
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            train_loss += loss.item()
+            train_acc += get_acc(output, label)
+
+        cur_time = datetime.now()
+        h, remainder = divmod((cur_time - prev_time).seconds, 3600)
+        m, s = divmod(remainder, 60)
+        time_str = "Time %02d:%02d:%02d" % (h, m, s)
+        if valid_data is not None:
+            valid_loss = 0
+            valid_acc = 0
+            net = net.eval()
+            for im, label in valid_data:
+                if torch.cuda.is_available():
+                    im = Variable(im.cuda(), volatile=True)
+                    label = Variable(label.cuda(), volatile=True)
+                else:
+                    im = Variable(im, volatile=True)
+                    label = Variable(label, volatile=True)
+                output = net(im)
+                loss = criterion(output, label)
+                valid_loss += loss.item()
+                valid_acc += get_acc(output, label)
+            epoch_str = (
+                "Epoch %d. Train Loss: %f, Train Acc: %f, Valid Loss: %f, Valid Acc: %f, "
+                % (epoch, train_loss / len(train_data),
+                   train_acc / len(train_data), valid_loss / len(valid_data),
+                   valid_acc / len(valid_data)))
+            if valid_acc / len(valid_data)>best_acc:
+                best_acc = valid_acc / len(valid_data)
+                torch.save( net.state_dict(), 'models/{}-{}-{}-0819-model-db.pth'.format(saver_prefix ,epoch + 1,int(best_acc*1000) ) )
+        else:
+            epoch_str = ("Epoch %d. Train Loss: %f, Train Acc: %f, " %
+                         (epoch, train_loss / len(train_data),
+                          train_acc / len(train_data)))
+        prev_time = cur_time
+        print(epoch_str + time_str)
+        # if (epoch+1)%saver_freq == 0:
+        #     # torch.save(net,'models/vgg-16-'+str(epoch+1)+'-model.pth')
+        #     # another weight saver method
+        #     torch.save(net.state_dict(),'models/{}-{}-0711-model.pth'.format(saver_prefix, epoch+1))
+        adjust_learning_rate(optimizer)
 
 class strLabelConverter(object):
     """Convert between str and label.
@@ -25,7 +103,9 @@ class strLabelConverter(object):
         self._ignore_case = ignore_case
         if self._ignore_case:
             alphabet = alphabet.lower()
-        self.alphabet = alphabet + '-'  # for `-1` index
+        self.alphabet = alphabet
+        self.alphabet.append(ord('_'))  # for `-1` index
+        # print(self.alphabet)
 
         self.dict = {}
         for i, char in enumerate(alphabet):
@@ -48,8 +128,8 @@ class strLabelConverter(object):
                 # for char in text:
                 #     print(char)
                 text = [
-                    self.dict[char.lower() if self._ignore_case else char]
-                    for char in text if char is not '\''
+                    self.dict[ord(char.lower() if self._ignore_case else char)]
+                    for char in text# if char in self.dict.keys()
                 ]
                 length = [len(text)]
             elif isinstance(text, collections.Iterable):
@@ -57,8 +137,11 @@ class strLabelConverter(object):
                 text = ''.join(text)
                 text, _ = self.encode(text)
         except KeyError as e:
-            print(text)
+            # print(text)
             print(e)
+            for ch in text:
+                if ord(ch) not in self.dict.keys():
+                    print('Not Covering Char: {} - {}'.format(ch,ord(ch)))
         return (torch.IntTensor(text), torch.IntTensor(length))
 
     def decode(self, t, length, raw=False):
@@ -78,12 +161,13 @@ class strLabelConverter(object):
             length = length[0]
             assert t.numel() == length, "text with length: {} does not match declared length: {}".format(t.numel(), length)
             if raw:
-                return ''.join([self.alphabet[i - 1] for i in t])
+                return ''.join([chr(self.alphabet[i - 1]) for i in t])
             else:
                 char_list = []
                 for i in range(length):
                     if t[i] != 0 and (not (i > 0 and t[i - 1] == t[i])):
-                        char_list.append(self.alphabet[t[i] - 1])
+                        char_list.append(chr(self.alphabet[t[i] - 1]))
+
                 return ''.join(char_list)
         else:
             # batch mode
