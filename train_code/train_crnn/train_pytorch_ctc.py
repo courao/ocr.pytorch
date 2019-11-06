@@ -17,25 +17,33 @@ from online_test import val_model
 config.imgW = 800
 config.alphabet = config.alphabet_v2
 config.nclass = len(config.alphabet) + 1
-config.saved_model_prefix = 'CRNN-0729-card-pthctc'
-config.train_infofile = ['data_set/infofile_newface_0725_cor_train_up1.txt','data_set/infofile_oldface_0725_cor_train_up1.txt']
-config.val_infofile = 'data_set/infofile_allface_0725_cor_test_up1.txt'
+config.saved_model_prefix = 'CRNN-1010'
+config.train_infofile = ['path_to_train_infofile1.txt','path_to_train_infofile2.txt']
+config.val_infofile = 'path_to_test_infofile.txt'
 config.keep_ratio = True
 config.use_log = True
-config.pretrained_model = 'crnn_models/CRNN-0728-card-pthctc_6_920.pth'
+config.pretrained_model = 'path_to_your_pretrained_model.pth'
 config.batchSize = 80
-config.workers = 8
+config.workers = 10
+config.adam = True
 # config.lr = 0.00003
 import os
 import datetime
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 log_filename = os.path.join('log/','loss_acc-'+config.saved_model_prefix + '.log')
+if not os.path.exists('debug_files'):
+    os.mkdir('debug_files')
+if not os.path.exists(config.saved_model_dir):
+    os.mkdir(config.saved_model_dir)
+if config.use_log and not os.path.exists('log'):
+    os.mkdir('log')
 if config.use_log and os.path.exists(log_filename):
     os.remove(log_filename)
 if config.experiment is None:
     config.experiment = 'expr'
-os.system('mkdir {0}'.format(config.experiment))
+if not os.path.exists(config.experiment):
+    os.mkdir(config.experiment)
 
 config.manualSeed = random.randint(1, 10000)  # fix seed
 print("Random Seed: ", config.manualSeed)
@@ -61,7 +69,8 @@ test_dataset = mydataset.MyDataset(
 
 converter = utils.strLabelConverter(config.alphabet)
 criterion = CTCLoss(reduction='sum',zero_infinity=True)
-best_acc = 0.95
+# criterion = CTCLoss()
+best_acc = 0.9
 
 
 # custom weights initialization called on crnn
@@ -76,12 +85,11 @@ def weights_init(m):
 
 crnn = crnn.CRNN(config.imgH, config.nc, config.nclass, config.nh)
 if config.pretrained_model!='' and os.path.exists(config.pretrained_model):
+    print('loading pretrained model from %s' % config.pretrained_model)
     crnn.load_state_dict(torch.load(config.pretrained_model))
 else:
     crnn.apply(weights_init)
-if config.pretrained_model != '':
-    print('loading pretrained model from %s' % config.pretrained_model)
-    crnn.load_state_dict(torch.load(config.pretrained_model))
+
 print(crnn)
 
 # image = torch.FloatTensor(config.batchSize, 3, config.imgH, config.imgH)
@@ -119,7 +127,7 @@ def val(net, dataset, criterion, max_iter=100):
     num_correct,  num_all = val_model(config.val_infofile,net,True,log_file='compare-'+config.saved_model_prefix+'.log')
     accuracy = num_correct / num_all
 
-    print('ocr_acc: %f' % (accuracy), 'txt_acc: %f' % (onlineaccuracy))
+    print('ocr_acc: %f' % (accuracy))
     if config.use_log:
         with open(log_filename, 'a') as f:
             f.write('ocr_acc:{}\n'.format(accuracy))
@@ -143,14 +151,18 @@ def trainBatch(net, criterion, optimizer):
 
     preds = net(image)  # seqLength x batchSize x alphabet_size
     preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))  # seqLength x batchSize
-    cost = criterion(preds, text, preds_size, length) / batch_size
-    net.zero_grad()
-    cost.backward()
-    optimizer.step()
+    cost = criterion(preds.log_softmax(2).cpu(), text, preds_size, length) / batch_size
+    if torch.isnan(cost):
+        print(batch_size,cpu_texts)
+    else:
+        net.zero_grad()
+        cost.backward()
+        optimizer.step()
     return cost
 
 
 for epoch in range(config.niter):
+    loss_avg.reset()
     print('epoch {}....'.format(epoch))
     train_iter = iter(train_loader)
     i = 0

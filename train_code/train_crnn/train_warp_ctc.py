@@ -18,14 +18,11 @@ config.imgW = 800
 config.alphabet = config.alphabet_v2
 config.nclass = len(config.alphabet) + 1
 config.saved_model_prefix = 'CRNN-1010'
-config.train_infofile = ['infofiles/infofile_selfcollect_train.txt','infofiles/infofile_selfcollect_train.txt',
-                         'infofiles/infofile_selfcollect_train.txt','infofiles/infofile_selfcollect_train.txt',
-                         'infofiles/infofile_selfcollect_train.txt','infofiles/infofile_selfcollect_train.txt',
-                         'infofiles/infofile_train_public.txt']
-config.val_infofile = 'infofiles/infofile_selfcollect_test.txt'
+config.train_infofile = ['path_to_train_infofile1.txt','path_to_train_infofile2.txt']
+config.val_infofile = 'path_to_test_infofile.txt'
 config.keep_ratio = True
 config.use_log = True
-config.pretrained_model = 'crnn_models/CRNN-1008.pth'
+config.pretrained_model = 'path_to_your_pretrained_model.pth'
 config.batchSize = 80
 config.workers = 10
 config.adam = True

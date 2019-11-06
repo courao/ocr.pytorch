@@ -17,12 +17,12 @@ from online_test import val_model
 config.imgW = 800
 config.alphabet = config.alphabet_v2
 config.nclass = len(config.alphabet) + 1
-config.saved_model_prefix = 'CRNN-1010-v2'
-config.train_infofile = ['infofiles/infofile_selfcollect_train.txt']
-config.val_infofile = 'infofiles/infofile_selfcollect_test.txt'
+config.saved_model_prefix = 'CRNN-1010'
+config.train_infofile = ['path_to_train_infofile1.txt','path_to_train_infofile2.txt']
+config.val_infofile = 'path_to_test_infofile.txt'
 config.keep_ratio = True
 config.use_log = True
-config.pretrained_model = ''
+config.pretrained_model = 'path_to_your_pretrained_model.pth'
 config.batchSize = 80
 config.workers = 10
 config.adam = True
@@ -30,7 +30,7 @@ config.adam = True
 import os
 import datetime
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 log_filename = os.path.join('log/','loss_acc-'+config.saved_model_prefix + '.log')
 if not os.path.exists('debug_files'):
     os.mkdir('debug_files')
