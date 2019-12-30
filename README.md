@@ -26,7 +26,7 @@ Recognition is based on [CRNN](http://arxiv.org/abs/1507.05717), some codes are 
 [crnn.pytorch](https://github.com/meijieru/crnn.pytorch)
 
 ### Test
-Download pretrained models from [here](https://pan.baidu.com/s/1yllO9hBF8TgChHJ7i3WobA) (extract code: u2ff)
+Download pretrained models from [Baidu Netdisk](https://pan.baidu.com/s/1yllO9hBF8TgChHJ7i3WobA) (extract code: u2ff) or [Google Driver](https://drive.google.com/open?id=1hRr9v9ky4VGygToFjLD9Cd-9xan43qID)
 and put these files into checkpoints.
 Then run
 >python3 demo.py
