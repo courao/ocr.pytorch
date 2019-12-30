@@ -1,7 +1,7 @@
 ## ocr.pytorch
-> A pure pytorch implemented ocr project.  
-Still under developing!  
-Test codes and training codes for CTPN are available now, training codes for CRNN will come soon. 
+> A pure pytorch implemented ocr project.    
+Text detection is based CTPN and text recognition is based CRNN.  
+More detection and recognition methods will be supported!
 
 ## Prerequisite
 
