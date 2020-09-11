@@ -19,8 +19,8 @@ they both depends on your CUDA version, you would prefer to reading [pytorch's o
 ### Detection
 Detection is based on [CTPN](https://arxiv.org/abs/1609.03605), some codes are borrowed from 
 [pytorch_ctpn](https://github.com/opconty/pytorch_ctpn), several detection results: 
-![detect1](test_result/t1.png)
-![detect2](test_result/t2.png)
+![detect1](test_result/t1.jpg)
+![detect2](test_result/t2.jpg)
 ### Recognition
 Recognition is based on [CRNN](http://arxiv.org/abs/1507.05717), some codes are borrowed from
 [crnn.pytorch](https://github.com/meijieru/crnn.pytorch)
