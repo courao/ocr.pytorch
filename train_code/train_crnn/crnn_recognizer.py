@@ -1,4 +1,5 @@
 import torch.nn as nn
+
 # import torchvision.models as models
 import torch, os
 from PIL import Image
@@ -35,9 +36,10 @@ class resizeNormalize(object):
             start = random.randint(0, w - w_real - 1)
             if self.is_test:
                 start = 0
-            tmp[:, :, start:start + w_real] = img
+            tmp[:, :, start : start + w_real] = img
             img = tmp
         return img
+
 
 # copy from utils
 class strLabelConverter(object):
@@ -45,7 +47,7 @@ class strLabelConverter(object):
         self._ignore_case = ignore_case
         if self._ignore_case:
             alphabet = alphabet.lower()
-        self.alphabet = alphabet + '_'  # for `-1` index
+        self.alphabet = alphabet + "_"  # for `-1` index
 
         self.dict = {}
         for i, char in enumerate(alphabet):
@@ -57,7 +59,7 @@ class strLabelConverter(object):
         length = []
         result = []
         for item in text:
-            item = item.decode('utf-8', 'strict')
+            item = item.decode("utf-8", "strict")
             length.append(len(item))
             for char in item:
                 if char not in self.dict.keys():
@@ -71,35 +73,42 @@ class strLabelConverter(object):
     def decode(self, t, length, raw=False):
         if length.numel() == 1:
             length = length[0]
-            assert t.numel() == length, "text with length: {} does not match declared length: {}".format(t.numel(),
-                                                                                                         length)
+            assert (
+                t.numel() == length
+            ), "text with length: {} does not match declared length: {}".format(
+                t.numel(), length
+            )
             if raw:
-                return ''.join([self.alphabet[i - 1] for i in t])
+                return "".join([self.alphabet[i - 1] for i in t])
             else:
                 char_list = []
                 for i in range(length):
                     if t[i] != 0 and (not (i > 0 and t[i - 1] == t[i])):
                         char_list.append(self.alphabet[t[i] - 1])
-                return ''.join(char_list)
+                return "".join(char_list)
         else:
             # batch mode
-            assert t.numel() == length.sum(), "texts with length: {} does not match declared length: {}".format(
-                t.numel(), length.sum())
+            assert (
+                t.numel() == length.sum()
+            ), "texts with length: {} does not match declared length: {}".format(
+                t.numel(), length.sum()
+            )
             texts = []
             index = 0
             for i in range(length.numel()):
                 l = length[i]
                 texts.append(
-                    self.decode(
-                        t[index:index + l], torch.IntTensor([l]), raw=raw))
+                    self.decode(t[index : index + l], torch.IntTensor([l]), raw=raw)
+                )
                 index += l
             return texts
 
+
 # recognize api
-class PytorchOcr():
+class PytorchOcr:
     def __init__(self, model_path):
         alphabet_unicode = config.alphabet_v2
-        self.alphabet = ''.join([chr(uni) for uni in alphabet_unicode])
+        self.alphabet = "".join([chr(uni) for uni in alphabet_unicode])
         # print(len(self.alphabet))
         self.nclass = len(self.alphabet) + 1
         self.model = CRNN(config.imgH, 1, self.nclass, 256)
@@ -107,19 +116,21 @@ class PytorchOcr():
         if torch.cuda.is_available():
             self.cuda = True
             self.model.cuda()
-            self.model.load_state_dict({k.replace('module.', ''): v for k, v in torch.load(model_path).items()})
+            self.model.load_state_dict(
+                {k.replace("module.", ""): v for k, v in torch.load(model_path).items()}
+            )
         else:
             # self.model = nn.DataParallel(self.model)
-            self.model.load_state_dict(torch.load(model_path, map_location='cpu'))
+            self.model.load_state_dict(torch.load(model_path, map_location="cpu"))
         self.model.eval()
         self.converter = strLabelConverter(self.alphabet)
 
     def recognize(self, img):
-        h,w = img.shape[:2]
+        h, w = img.shape[:2]
         if len(img.shape) == 3:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         image = Image.fromarray(img)
-        transformer = resizeNormalize((int(w/h*32), 32))
+        transformer = resizeNormalize((int(w / h * 32), 32))
         image = transformer(image)
         image = image.view(1, *image.size())
         image = Variable(image)
@@ -138,15 +149,11 @@ class PytorchOcr():
         return txt
 
 
-if __name__ == '__main__':
-    model_path = './crnn_models/CRNN-1008.pth'
+if __name__ == "__main__":
+    model_path = "./crnn_models/CRNN-1008.pth"
     recognizer = PytorchOcr(model_path)
-    img_name = 't1.jpg'
+    img_name = "t1.jpg"
     img = cv2.imread(img_name)
     h, w = img.shape[:2]
     res = recognizer.recognize(img)
     print(res)
-
-
-
-

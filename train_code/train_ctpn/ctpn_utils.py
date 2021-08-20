@@ -1,4 +1,4 @@
-#-*- coding:utf-8 -*-
+# -*- coding:utf-8 -*-
 #'''
 # Created on 18-12-11 上午10:05
 #
@@ -43,8 +43,8 @@ def resize(image, width=None, height=None, inter=cv2.INTER_AREA):
 
 def gen_anchor(featuresize, scale):
     """
-        gen base anchor from feature map [HXW][9][4]
-        reshape  [HXW][9][4] to [HXWX9][4]
+    gen base anchor from feature map [HXW][9][4]
+    reshape  [HXW][9][4] to [HXWX9][4]
     """
     heights = [11, 16, 23, 33, 48, 68, 97, 139, 198, 283]
     widths = [16, 16, 16, 16, 16, 16, 16, 16, 16, 16]
@@ -76,7 +76,7 @@ def gen_anchor(featuresize, scale):
     return np.array(anchor).reshape((-1, 4))
 
 
-def cal_iou(box1, box1_area , boxes2, boxes2_area):
+def cal_iou(box1, box1_area, boxes2, boxes2_area):
     """
     box1 [x1,y1,x2,y2]
     boxes2 [Msample,x1,y1,x2,y2]
@@ -111,8 +111,8 @@ def cal_overlaps(boxes1, boxes2):
 
 def bbox_transfrom(anchors, gtboxes):
     """
-     compute relative predicted vertical coordinates Vc ,Vh
-        with respect to the bounding box location of an anchor
+    compute relative predicted vertical coordinates Vc ,Vh
+       with respect to the bounding box location of an anchor
     """
     regr = np.zeros((anchors.shape[0], 2))
     Cy = (gtboxes[:, 1] + gtboxes[:, 3]) * 0.5
@@ -128,7 +128,7 @@ def bbox_transfrom(anchors, gtboxes):
 
 def bbox_transfor_inv(anchor, regr):
     """
-        return predict bbox
+    return predict bbox
     """
 
     Cya = (anchor[:, 1] + anchor[:, 3]) * 0.5
@@ -199,26 +199,30 @@ def cal_rpn(imgsize, featuresize, scale, gtboxes):
 
     # only keep anchors inside the image
     outside_anchor = np.where(
-        (base_anchor[:, 0] < 0) |
-        (base_anchor[:, 1] < 0) |
-        (base_anchor[:, 2] >= imgw) |
-        (base_anchor[:, 3] >= imgh)
+        (base_anchor[:, 0] < 0)
+        | (base_anchor[:, 1] < 0)
+        | (base_anchor[:, 2] >= imgw)
+        | (base_anchor[:, 3] >= imgh)
     )[0]
     labels[outside_anchor] = -1
 
     # subsample positive labels ,if greater than RPN_POSITIVE_NUM(default 128)
     fg_index = np.where(labels == 1)[0]
     # print(len(fg_index))
-    if (len(fg_index) > RPN_POSITIVE_NUM):
-        labels[np.random.choice(fg_index, len(fg_index) - RPN_POSITIVE_NUM, replace=False)] = -1
+    if len(fg_index) > RPN_POSITIVE_NUM:
+        labels[
+            np.random.choice(fg_index, len(fg_index) - RPN_POSITIVE_NUM, replace=False)
+        ] = -1
 
     # subsample negative labels
     if not OHEM:
         bg_index = np.where(labels == 0)[0]
         num_bg = RPN_TOTAL_NUM - np.sum(labels == 1)
-        if (len(bg_index) > num_bg):
+        if len(bg_index) > num_bg:
             # print('bgindex:',len(bg_index),'num_bg',num_bg)
-            labels[np.random.choice(bg_index, len(bg_index) - num_bg, replace=False)] = -1
+            labels[
+                np.random.choice(bg_index, len(bg_index) - num_bg, replace=False)
+            ] = -1
 
     # calculate bbox targets
     # debug here
@@ -291,13 +295,16 @@ class TextLineCfg:
 
 class TextProposalGraphBuilder:
     """
-        Build Text proposals into a graph.
+    Build Text proposals into a graph.
     """
 
     def get_successions(self, index):
         box = self.text_proposals[index]
         results = []
-        for left in range(int(box[0]) + 1, min(int(box[0]) + TextLineCfg.MAX_HORIZONTAL_GAP + 1, self.im_size[1])):
+        for left in range(
+            int(box[0]) + 1,
+            min(int(box[0]) + TextLineCfg.MAX_HORIZONTAL_GAP + 1, self.im_size[1]),
+        ):
             adj_box_indices = self.boxes_table[left]
             for adj_box_index in adj_box_indices:
                 if self.meet_v_iou(adj_box_index, index):
@@ -309,7 +316,11 @@ class TextProposalGraphBuilder:
     def get_precursors(self, index):
         box = self.text_proposals[index]
         results = []
-        for left in range(int(box[0]) - 1, max(int(box[0] - TextLineCfg.MAX_HORIZONTAL_GAP), 0) - 1, -1):
+        for left in range(
+            int(box[0]) - 1,
+            max(int(box[0] - TextLineCfg.MAX_HORIZONTAL_GAP), 0) - 1,
+            -1,
+        ):
             adj_box_indices = self.boxes_table[left]
             for adj_box_index in adj_box_indices:
                 if self.meet_v_iou(adj_box_index, index):
@@ -337,8 +348,10 @@ class TextProposalGraphBuilder:
             h2 = self.heights[index2]
             return min(h1, h2) / max(h1, h2)
 
-        return overlaps_v(index1, index2) >= TextLineCfg.MIN_V_OVERLAPS and \
-               size_similarity(index1, index2) >= TextLineCfg.MIN_SIZE_SIM
+        return (
+            overlaps_v(index1, index2) >= TextLineCfg.MIN_V_OVERLAPS
+            and size_similarity(index1, index2) >= TextLineCfg.MIN_SIZE_SIM
+        )
 
     def build_graph(self, text_proposals, scores, im_size):
         self.text_proposals = text_proposals
@@ -367,7 +380,7 @@ class TextProposalGraphBuilder:
 
 class TextProposalConnectorOriented:
     """
-        Connect text proposals into text lines
+    Connect text proposals into text lines
     """
 
     def __init__(self):
@@ -391,59 +404,88 @@ class TextProposalConnectorOriented:
 
         """
         # tp=text proposal
-        tp_groups = self.group_text_proposals(text_proposals, scores, im_size)  # 首先还是建图，获取到文本行由哪几个小框构成
+        # First of all, it is to build a picture, and get the small boxes constituted by the text line
+        tp_groups = self.group_text_proposals(text_proposals, scores, im_size)
 
         text_lines = np.zeros((len(tp_groups), 8), np.float32)
 
         for index, tp_indices in enumerate(tp_groups):
-            text_line_boxes = text_proposals[list(tp_indices)]  # 每个文本行的全部小框
-            X = (text_line_boxes[:, 0] + text_line_boxes[:, 2]) / 2  # 求每一个小框的中心x，y坐标
+            text_line_boxes = text_proposals[
+                list(tp_indices)
+            ]  # All small boxes for each text line
+            X = (
+                text_line_boxes[:, 0] + text_line_boxes[:, 2]
+            ) / 2  # Find the x and y coordinates of the center of each small box
             Y = (text_line_boxes[:, 1] + text_line_boxes[:, 3]) / 2
 
-            z1 = np.polyfit(X, Y, 1)  # 多项式拟合，根据之前求的中心店拟合一条直线（最小二乘）
+            # Polynomial fitting, fitting a straight line according to the center store found before (least squares)
+            z1 = np.polyfit(X, Y, 1)
 
-            x0 = np.min(text_line_boxes[:, 0])  # 文本行x坐标最小值
-            x1 = np.max(text_line_boxes[:, 2])  # 文本行x坐标最大值
+            x0 = np.min(
+                text_line_boxes[:, 0]
+            )  # The minimum x coordinate of the text line
+            x1 = np.max(text_line_boxes[:, 2])  # Maximum x coordinate of text line
 
-            offset = (text_line_boxes[0, 2] - text_line_boxes[0, 0]) * 0.5  # 小框宽度的一半
+            offset = (
+                text_line_boxes[0, 2] - text_line_boxes[0, 0]
+            ) * 0.5  # Half the width of the small box
 
-            # 以全部小框的左上角这个点去拟合一条直线，然后计算一下文本行x坐标的极左极右对应的y坐标
-            lt_y, rt_y = self.fit_y(text_line_boxes[:, 0], text_line_boxes[:, 1], x0 + offset, x1 - offset)
-            # 以全部小框的左下角这个点去拟合一条直线，然后计算一下文本行x坐标的极左极右对应的y坐标
-            lb_y, rb_y = self.fit_y(text_line_boxes[:, 0], text_line_boxes[:, 3], x0 + offset, x1 - offset)
+            # Fit a straight line with the point on the upper left corner of all the small boxes,
+            # and then calculate the y coordinate corresponding to the extreme left and right
+            # of the x coordinate of the text line
+            lt_y, rt_y = self.fit_y(
+                text_line_boxes[:, 0], text_line_boxes[:, 1], x0 + offset, x1 - offset
+            )
+            # Fit a straight line with the point at the lower left corner of all the small boxes,
+            # and then calculate the y coordinate corresponding to the extreme left and right
+            # of the x coordinate of the text line
+            lb_y, rb_y = self.fit_y(
+                text_line_boxes[:, 0], text_line_boxes[:, 3], x0 + offset, x1 - offset
+            )
 
-            score = scores[list(tp_indices)].sum() / float(len(tp_indices))  # 求全部小框得分的均值作为文本行的均值
+            # Find the average value of all the small box scores as the average value of the text line
+            score = scores[list(tp_indices)].sum() / float(len(tp_indices))
 
             text_lines[index, 0] = x0
-            text_lines[index, 1] = min(lt_y, rt_y)  # 文本行上端 线段 的y坐标的小值
+            text_lines[index, 1] = min(
+                lt_y, rt_y
+            )  # The small value of the y coordinate of the line segment at the top of the text line
             text_lines[index, 2] = x1
-            text_lines[index, 3] = max(lb_y, rb_y)  # 文本行下端 线段 的y坐标的大值
-            text_lines[index, 4] = score  # 文本行得分
-            text_lines[index, 5] = z1[0]  # 根据中心点拟合的直线的k，b
+            text_lines[index, 3] = max(
+                lb_y, rb_y
+            )  # The maximum value of the y coordinate of the line segment at the bottom of the text line
+            text_lines[index, 4] = score  # Text line score
+            text_lines[index, 5] = z1[
+                0
+            ]  # K, b of a straight line fitted according to the center point
             text_lines[index, 6] = z1[1]
-            height = np.mean((text_line_boxes[:, 3] - text_line_boxes[:, 1]))  # 小框平均高度
+            height = np.mean(
+                (text_line_boxes[:, 3] - text_line_boxes[:, 1])
+            )  # Average height of small box
             text_lines[index, 7] = height + 2.5
 
         text_recs = np.zeros((len(text_lines), 9), np.float)
         index = 0
         for line in text_lines:
-            b1 = line[6] - line[7] / 2  # 根据高度和文本行中心线，求取文本行上下两条线的b值
+            # According to the height and the center line of the text line,
+            # find the b value of the upper and lower lines of the text line
+            b1 = line[6] - line[7] / 2
             b2 = line[6] + line[7] / 2
             x1 = line[0]
-            y1 = line[5] * line[0] + b1  # 左上
+            y1 = line[5] * line[0] + b1  # upper left
             x2 = line[2]
-            y2 = line[5] * line[2] + b1  # 右上
+            y2 = line[5] * line[2] + b1  # upper right
             x3 = line[0]
-            y3 = line[5] * line[0] + b2  # 左下
+            y3 = line[5] * line[0] + b2  # lower left
             x4 = line[2]
-            y4 = line[5] * line[2] + b2  # 右下
+            y4 = line[5] * line[2] + b2  # lower right
             disX = x2 - x1
             disY = y2 - y1
-            width = np.sqrt(disX * disX + disY * disY)  # 文本行宽度
+            width = np.sqrt(disX * disX + disY * disY)  # Text line width
 
-            fTmp0 = y3 - y1  # 文本行高度
+            fTmp0 = y3 - y1  # Text line height
             fTmp1 = fTmp0 * disY / width
-            x = np.fabs(fTmp1 * disX / width)  # 做补偿
+            x = np.fabs(fTmp1 * disX / width)  # Make compensation
             y = np.fabs(fTmp1 * disY / width)
             if line[5] < 0:
                 x1 -= x
@@ -467,4 +509,3 @@ class TextProposalConnectorOriented:
             index = index + 1
 
         return text_recs
-

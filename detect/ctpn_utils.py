@@ -1,4 +1,4 @@
-#-*- coding:utf-8 -*-
+# -*- coding:utf-8 -*-
 #'''
 # Created on 18-12-11 上午10:05
 #
@@ -43,8 +43,8 @@ def resize(image, width=None, height=None, inter=cv2.INTER_AREA):
 
 def gen_anchor(featuresize, scale):
     """
-        gen base anchor from feature map [HXW][9][4]
-        reshape  [HXW][9][4] to [HXWX9][4]
+    gen base anchor from feature map [HXW][9][4]
+    reshape  [HXW][9][4] to [HXWX9][4]
     """
     heights = [11, 16, 23, 33, 48, 68, 97, 139, 198, 283]
     widths = [16, 16, 16, 16, 16, 16, 16, 16, 16, 16]
@@ -111,8 +111,8 @@ def cal_overlaps(boxes1, boxes2):
 
 def bbox_transfrom(anchors, gtboxes):
     """
-     compute relative predicted vertical coordinates Vc ,Vh
-        with respect to the bounding box location of an anchor
+    compute relative predicted vertical coordinates Vc ,Vh
+       with respect to the bounding box location of an anchor
     """
     regr = np.zeros((anchors.shape[0], 2))
     Cy = (gtboxes[:, 1] + gtboxes[:, 3]) * 0.5
@@ -128,7 +128,7 @@ def bbox_transfrom(anchors, gtboxes):
 
 def bbox_transfor_inv(anchor, regr):
     """
-        return predict bbox
+    return predict bbox
     """
 
     Cya = (anchor[:, 1] + anchor[:, 3]) * 0.5
@@ -199,22 +199,24 @@ def cal_rpn(imgsize, featuresize, scale, gtboxes):
 
     # only keep anchors inside the image
     outside_anchor = np.where(
-        (base_anchor[:, 0] < 0) |
-        (base_anchor[:, 1] < 0) |
-        (base_anchor[:, 2] >= imgw) |
-        (base_anchor[:, 3] >= imgh)
+        (base_anchor[:, 0] < 0)
+        | (base_anchor[:, 1] < 0)
+        | (base_anchor[:, 2] >= imgw)
+        | (base_anchor[:, 3] >= imgh)
     )[0]
     labels[outside_anchor] = -1
 
     # subsample positive labels ,if greater than RPN_POSITIVE_NUM(default 128)
     fg_index = np.where(labels == 1)[0]
-    if (len(fg_index) > RPN_POSITIVE_NUM):
-        labels[np.random.choice(fg_index, len(fg_index) - RPN_POSITIVE_NUM, replace=False)] = -1
+    if len(fg_index) > RPN_POSITIVE_NUM:
+        labels[
+            np.random.choice(fg_index, len(fg_index) - RPN_POSITIVE_NUM, replace=False)
+        ] = -1
 
     # subsample negative labels
     bg_index = np.where(labels == 0)[0]
     num_bg = RPN_TOTAL_NUM - np.sum(labels == 1)
-    if (len(bg_index) > num_bg):
+    if len(bg_index) > num_bg:
         # print('bgindex:',len(bg_index),'num_bg',num_bg)
         labels[np.random.choice(bg_index, len(bg_index) - num_bg, replace=False)] = -1
 
@@ -288,13 +290,16 @@ class TextLineCfg:
 
 class TextProposalGraphBuilder:
     """
-        Build Text proposals into a graph.
+    Build Text proposals into a graph.
     """
 
     def get_successions(self, index):
         box = self.text_proposals[index]
         results = []
-        for left in range(int(box[0]) + 1, min(int(box[0]) + TextLineCfg.MAX_HORIZONTAL_GAP + 1, self.im_size[1])):
+        for left in range(
+            int(box[0]) + 1,
+            min(int(box[0]) + TextLineCfg.MAX_HORIZONTAL_GAP + 1, self.im_size[1]),
+        ):
             adj_box_indices = self.boxes_table[left]
             for adj_box_index in adj_box_indices:
                 if self.meet_v_iou(adj_box_index, index):
@@ -306,7 +311,11 @@ class TextProposalGraphBuilder:
     def get_precursors(self, index):
         box = self.text_proposals[index]
         results = []
-        for left in range(int(box[0]) - 1, max(int(box[0] - TextLineCfg.MAX_HORIZONTAL_GAP), 0) - 1, -1):
+        for left in range(
+            int(box[0]) - 1,
+            max(int(box[0] - TextLineCfg.MAX_HORIZONTAL_GAP), 0) - 1,
+            -1,
+        ):
             adj_box_indices = self.boxes_table[left]
             for adj_box_index in adj_box_indices:
                 if self.meet_v_iou(adj_box_index, index):
@@ -334,8 +343,10 @@ class TextProposalGraphBuilder:
             h2 = self.heights[index2]
             return min(h1, h2) / max(h1, h2)
 
-        return overlaps_v(index1, index2) >= TextLineCfg.MIN_V_OVERLAPS and \
-               size_similarity(index1, index2) >= TextLineCfg.MIN_SIZE_SIM
+        return (
+            overlaps_v(index1, index2) >= TextLineCfg.MIN_V_OVERLAPS
+            and size_similarity(index1, index2) >= TextLineCfg.MIN_SIZE_SIM
+        )
 
     def build_graph(self, text_proposals, scores, im_size):
         self.text_proposals = text_proposals
@@ -364,7 +375,7 @@ class TextProposalGraphBuilder:
 
 class TextProposalConnectorOriented:
     """
-        Connect text proposals into text lines
+    Connect text proposals into text lines
     """
 
     def __init__(self):
@@ -388,7 +399,9 @@ class TextProposalConnectorOriented:
 
         """
         # tp=text proposal
-        tp_groups = self.group_text_proposals(text_proposals, scores, im_size)  # 首先还是建图，获取到文本行由哪几个小框构成
+        tp_groups = self.group_text_proposals(
+            text_proposals, scores, im_size
+        )  # 首先还是建图，获取到文本行由哪几个小框构成
 
         text_lines = np.zeros((len(tp_groups), 8), np.float32)
 
@@ -405,11 +418,17 @@ class TextProposalConnectorOriented:
             offset = (text_line_boxes[0, 2] - text_line_boxes[0, 0]) * 0.5  # 小框宽度的一半
 
             # 以全部小框的左上角这个点去拟合一条直线，然后计算一下文本行x坐标的极左极右对应的y坐标
-            lt_y, rt_y = self.fit_y(text_line_boxes[:, 0], text_line_boxes[:, 1], x0 + offset, x1 - offset)
+            lt_y, rt_y = self.fit_y(
+                text_line_boxes[:, 0], text_line_boxes[:, 1], x0 + offset, x1 - offset
+            )
             # 以全部小框的左下角这个点去拟合一条直线，然后计算一下文本行x坐标的极左极右对应的y坐标
-            lb_y, rb_y = self.fit_y(text_line_boxes[:, 0], text_line_boxes[:, 3], x0 + offset, x1 - offset)
+            lb_y, rb_y = self.fit_y(
+                text_line_boxes[:, 0], text_line_boxes[:, 3], x0 + offset, x1 - offset
+            )
 
-            score = scores[list(tp_indices)].sum() / float(len(tp_indices))  # 求全部小框得分的均值作为文本行的均值
+            score = scores[list(tp_indices)].sum() / float(
+                len(tp_indices)
+            )  # 求全部小框得分的均值作为文本行的均值
 
             text_lines[index, 0] = x0
             text_lines[index, 1] = min(lt_y, rt_y)  # 文本行上端 线段 的y坐标的小值
@@ -464,4 +483,3 @@ class TextProposalConnectorOriented:
             index = index + 1
 
         return text_recs
-

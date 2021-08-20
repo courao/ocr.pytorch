@@ -1,4 +1,4 @@
-#-*- coding:utf-8 -*-
+# -*- coding:utf-8 -*-
 #'''
 # Created on 18-12-27 上午10:34
 #
@@ -17,18 +17,18 @@ from ctpn_utils import cal_rpn
 
 def readxml(path):
     gtboxes = []
-    imgfile = ''
+    imgfile = ""
     xml = ET.parse(path)
     for elem in xml.iter():
-        if 'filename' in elem.tag:
+        if "filename" in elem.tag:
             imgfile = elem.text
-        if 'object' in elem.tag:
+        if "object" in elem.tag:
             for attr in list(elem):
-                if 'bndbox' in attr.tag:
-                    xmin = int(round(float(attr.find('xmin').text)))
-                    ymin = int(round(float(attr.find('ymin').text)))
-                    xmax = int(round(float(attr.find('xmax').text)))
-                    ymax = int(round(float(attr.find('ymax').text)))
+                if "bndbox" in attr.tag:
+                    xmin = int(round(float(attr.find("xmin").text)))
+                    ymin = int(round(float(attr.find("ymin").text)))
+                    xmax = int(round(float(attr.find("xmax").text)))
+                    ymax = int(round(float(attr.find("ymax").text)))
 
                     gtboxes.append((xmin, ymin, xmax, ymax))
 
@@ -37,19 +37,17 @@ def readxml(path):
 
 # for ctpn text detection
 class VOCDataset(Dataset):
-    def __init__(self,
-                 datadir,
-                 labelsdir):
-        '''
+    def __init__(self, datadir, labelsdir):
+        """
 
         :param txtfile: image name list text file
         :param datadir: image's directory
         :param labelsdir: annotations' directory
-        '''
+        """
         if not os.path.isdir(datadir):
-            raise Exception('[ERROR] {} is not a directory'.format(datadir))
+            raise Exception("[ERROR] {} is not a directory".format(datadir))
         if not os.path.isdir(labelsdir):
-            raise Exception('[ERROR] {} is not a directory'.format(labelsdir))
+            raise Exception("[ERROR] {} is not a directory".format(labelsdir))
 
         self.datadir = datadir
         self.img_names = os.listdir(self.datadir)
@@ -62,7 +60,7 @@ class VOCDataset(Dataset):
         img_name = self.img_names[idx]
         img_path = os.path.join(self.datadir, img_name)
         print(img_path)
-        xml_path = os.path.join(self.labelsdir, img_name.replace('.jpg', '.xml'))
+        xml_path = os.path.join(self.labelsdir, img_name.replace(".jpg", ".xml"))
         gtbox, _ = readxml(xml_path)
         img = cv2.imread(img_path)
         h, w, c = img.shape
@@ -90,20 +88,19 @@ class VOCDataset(Dataset):
 
         return m_img, cls, regr
 
+
 class ICDARDataset(Dataset):
-    def __init__(self,
-                 datadir,
-                 labelsdir):
-        '''
+    def __init__(self, datadir, labelsdir):
+        """
 
         :param txtfile: image name list text file
         :param datadir: image's directory
         :param labelsdir: annotations' directory
-        '''
+        """
         if not os.path.isdir(datadir):
-            raise Exception('[ERROR] {} is not a directory'.format(datadir))
+            raise Exception("[ERROR] {} is not a directory".format(datadir))
         if not os.path.isdir(labelsdir):
-            raise Exception('[ERROR] {} is not a directory'.format(labelsdir))
+            raise Exception("[ERROR] {} is not a directory".format(labelsdir))
 
         self.datadir = datadir
         self.img_names = os.listdir(self.datadir)
@@ -112,16 +109,16 @@ class ICDARDataset(Dataset):
     def __len__(self):
         return len(self.img_names)
 
-    def box_transfer(self,coor_lists,rescale_fac = 1.0):
+    def box_transfer(self, coor_lists, rescale_fac=1.0):
         gtboxes = []
         for coor_list in coor_lists:
-            coors_x = [int(coor_list[2*i]) for i in range(4)]
-            coors_y = [int(coor_list[2*i+1]) for i in range(4)]
+            coors_x = [int(coor_list[2 * i]) for i in range(4)]
+            coors_y = [int(coor_list[2 * i + 1]) for i in range(4)]
             xmin = min(coors_x)
             xmax = max(coors_x)
             ymin = min(coors_y)
             ymax = max(coors_y)
-            if rescale_fac>1.0:
+            if rescale_fac > 1.0:
                 xmin = int(xmin / rescale_fac)
                 xmax = int(xmax / rescale_fac)
                 ymin = int(ymin / rescale_fac)
@@ -129,7 +126,7 @@ class ICDARDataset(Dataset):
             gtboxes.append((xmin, ymin, xmax, ymax))
         return np.array(gtboxes)
 
-    def box_transfer_v2(self,coor_lists,rescale_fac = 1.0):
+    def box_transfer_v2(self, coor_lists, rescale_fac=1.0):
         gtboxes = []
         for coor_list in coor_lists:
             coors_x = [int(coor_list[2 * i]) for i in range(4)]
@@ -145,31 +142,31 @@ class ICDARDataset(Dataset):
                 ymax = int(ymax / rescale_fac)
             prev = xmin
             for i in range(xmin // 16 + 1, xmax // 16 + 1):
-                next = 16*i-0.5
+                next = 16 * i - 0.5
                 gtboxes.append((prev, ymin, next, ymax))
                 prev = next
             gtboxes.append((prev, ymin, xmax, ymax))
         return np.array(gtboxes)
 
-    def parse_gtfile(self,gt_path,rescale_fac = 1.0):
+    def parse_gtfile(self, gt_path, rescale_fac=1.0):
         coor_lists = list()
         with open(gt_path) as f:
             content = f.readlines()
             for line in content:
-                coor_list = line.split(',')[:8]
-                if len(coor_list)==8:
+                coor_list = line.split(",")[:8]
+                if len(coor_list) == 8:
                     coor_lists.append(coor_list)
-        return self.box_transfer_v2(coor_lists,rescale_fac)
+        return self.box_transfer_v2(coor_lists, rescale_fac)
 
-    def draw_boxes(self,img,cls,base_anchors,gt_box):
+    def draw_boxes(self, img, cls, base_anchors, gt_box):
         for i in range(len(cls)):
-            if cls[i]==1:
-                pt1 = (int(base_anchors[i][0]),int(base_anchors[i][1]))
-                pt2 = (int(base_anchors[i][2]),int(base_anchors[i][3]))
-                img = cv2.rectangle(img,pt1,pt2,(200,100,100))
+            if cls[i] == 1:
+                pt1 = (int(base_anchors[i][0]), int(base_anchors[i][1]))
+                pt2 = (int(base_anchors[i][2]), int(base_anchors[i][3]))
+                img = cv2.rectangle(img, pt1, pt2, (200, 100, 100))
         for i in range(gt_box.shape[0]):
-            pt1 = (int(gt_box[i][0]),int(gt_box[i][1]))
-            pt2 = (int(gt_box[i][2]),int(gt_box[i][3]))
+            pt1 = (int(gt_box[i][0]), int(gt_box[i][1]))
+            pt2 = (int(gt_box[i][2]), int(gt_box[i][3]))
             img = cv2.rectangle(img, pt1, pt2, (100, 200, 100))
         return img
 
@@ -181,9 +178,9 @@ class ICDARDataset(Dataset):
         #####for read error, use default image#####
         if img is None:
             print(img_path)
-            with open('error_imgs.txt','a') as f:
-                f.write('{}\n'.format(img_path))
-            img_name = 'img_2647.jpg'
+            with open("error_imgs.txt", "a") as f:
+                f.write("{}\n".format(img_path))
+            img_name = "img_2647.jpg"
             img_path = os.path.join(self.datadir, img_name)
             img = cv2.imread(img_path)
 
@@ -191,13 +188,13 @@ class ICDARDataset(Dataset):
 
         h, w, c = img.shape
         rescale_fac = max(h, w) / 1600
-        if rescale_fac>1.0:
-            h = int(h/rescale_fac)
-            w = int(w/rescale_fac)
-            img = cv2.resize(img,(w,h))
+        if rescale_fac > 1.0:
+            h = int(h / rescale_fac)
+            w = int(w / rescale_fac)
+            img = cv2.resize(img, (w, h))
 
-        gt_path = os.path.join(self.labelsdir, 'gt_'+img_name.split('.')[0]+'.txt')
-        gtbox = self.parse_gtfile(gt_path,rescale_fac)
+        gt_path = os.path.join(self.labelsdir, "gt_" + img_name.split(".")[0] + ".txt")
+        gtbox = self.parse_gtfile(gt_path, rescale_fac)
 
         # clip image
         if np.random.randint(2) == 1:
@@ -207,7 +204,9 @@ class ICDARDataset(Dataset):
             gtbox[:, 0] = newx1
             gtbox[:, 2] = newx2
 
-        [cls, regr], base_anchors = cal_rpn((h, w), (int(h / 16), int(w / 16)), 16, gtbox)
+        [cls, regr], base_anchors = cal_rpn(
+            (h, w), (int(h / 16), int(w / 16)), 16, gtbox
+        )
         # debug_img = self.draw_boxes(img.copy(),cls,base_anchors,gtbox)
         # cv2.imwrite('debug/{}'.format(img_name),debug_img)
         m_img = img - IMAGE_MEAN
@@ -223,8 +222,9 @@ class ICDARDataset(Dataset):
 
         return m_img, cls, regr
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     xmin = 15
     xmax = 95
-    for i in range(xmin//16+1,xmax//16+1):
-        print(16*i-0.5)
+    for i in range(xmin // 16 + 1, xmax // 16 + 1):
+        print(16 * i - 0.5)
