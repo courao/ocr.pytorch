@@ -7,15 +7,12 @@
 #############################
 
 import os
-
 import torch
-from torch.utils.data import DataLoader
-from torch import optim
 import numpy as np
-import argparse
 
 import config
-from ctpn_model_PL import CTPN_Model, EpochLossCallback
+from ctpn_model_PL import CTPN_Model
+from ctpn_model_PL import LossAndCheckpointCallback, InitializeWeights, LoadCheckpoint
 from dataset_PL import ICDARDataModule
 import pytorch_lightning as pl
 
@@ -25,8 +22,7 @@ def train():
     torch.random.manual_seed(random_seed)
     np.random.seed(random_seed)
 
-    epochs = 30
-    lr = 1e-3
+    max_epochs = 30
 
     datamodule = ICDARDataModule(
         config.icdar17_mlt_img_dir,
@@ -36,11 +32,16 @@ def train():
         shuffle=True,
     )
 
+    len_train_dataset = len(datamodule.train_data)
+
     model = CTPN_Model()
 
     trainer = pl.Trainer(gpus=0,
+                         max_epochs=max_epochs,
                          log_every_n_steps=1,
-                         callbacks=[EpochLossCallback()])
+                         callbacks=[LoadCheckpoint(config.pretrained_weights),
+                                    InitializeWeights(),
+                                    LossAndCheckpointCallback(config, len_train_dataset)])
 
     trainer.fit(model, datamodule)
 

@@ -15,28 +15,6 @@ from pytorch_lightning.callbacks import Callback
 from torch import optim
 
 
-class Initializer:
-    def __init__(self):
-        pass
-
-    def init_module(m,x):
-        print(m,x)
-        classname = m.__class__.__name__
-        if classname.find("Conv") != -1:
-            m.weight.data.normal_(0.0, 0.02)
-        elif classname.find("BatchNorm") != -1:
-            m.weight.data.normal_(1.0, 0.02)
-            m.bias.data.fill_(0)
-
-    def __call__(self, net):
-        """
-        Parameters:
-            net: Network
-        """
-        net.apply(self.init_module)
-
-        return net
-
 
 class RPN_REGR_Loss(nn.Module):
     def __init__(self, sigma=9.0):
@@ -167,23 +145,117 @@ class basic_conv(nn.Module):
         return x
 
 
-class EpochLossCallback(Callback):
+
+class LoadCheckpoint(Callback):
+    def __init__(self, checkpoint_path):
+        super().__init__()
+        self.checkpoint_path = checkpoint_path
+    
+    def using_gpu(self):
+        # torch.cuda.is_available() fails on MAC
+        try:
+            torch.cuda.current_device()
+            torch.cuda.is_available()
+            # GPU is used!
+            return True
+        except AssertionError:
+            # GPU is not being used!
+            return False
+        except AttributeError:
+            # GPU is not being used!
+            return False
+        except RuntimeError:
+            # GPU is not being used!
+            return False
+
+    def on_pretrain_routine_start(self, trainer, pl_module):
+        # load checkpoint if checkpoint is found
+        if os.path.isfile(self.checkpoint_path):
+            device = torch.device("cuda:0" if self.using_gpu() else "cpu")
+            pl_module.load_state_dict(torch.load(self.checkpoint_path, map_location=device)["model_state_dict"])
+            pl_module.to(device)
+            pl_module.eval()
+        else:
+            print('checkpoint not found, skipping checkpoint load step')
+
+
+class InitializeWeights(Callback):
     """
-logs epoch loss and such
+    Initialize weights before training starts
     """
+    def weights_init(self, m):
+        classname = m.__class__.__name__
+        if classname.find("Conv") != -1:
+            m.weight.data.normal_(0.0, 0.02)
+        elif classname.find("BatchNorm") != -1:
+            m.weight.data.normal_(1.0, 0.02)
+            m.bias.data.fill_(0)
+
+    def on_train_start(self, trainer, pl_module):
+        pl_module.apply(self.weights_init)
+
+
+class LossAndCheckpointCallback(Callback):
+    """
+    Logs epoch loss and such
+    """
+    def __init__(self, cfg, len_dataset):
+        super().__init__()
+        self.cfg = cfg
+        self.len_dataset = len_dataset
+        self.best_loss_cls = 100
+        self.best_loss_regr = 100
+        self.best_epoch_loss = 100
+
     def on_epoch_start(self, trainer, pl_module):
         pl_module.epoch_loss_cls = 0
         pl_module.epoch_loss_regr = 0
         pl_module.epoch_loss = 0
 
-    def on_epoch_end(self, trainer, pl_module):
-        trainer.log(
-            {
-                "epoch_loss_cls": pl_module.epoch_loss_cls,
-                "epoch_loss_regr": pl_module.epoch_loss_regr,
-                "epoch_loss": pl_module.epoch_loss,
-            }
+
+    def save_checkpoint(self, state, epoch, loss_cls, loss_regr, loss, ext="pth"):
+        check_path = os.path.join(
+            config.checkpoints_dir,
+            f"v3_ctpn_ep{epoch:02d}_" f"{loss_cls:.4f}_{loss_regr:.4f}_{loss:.4f}.{ext}",
         )
+
+        try:
+            torch.save(state, check_path)
+        except BaseException as e:
+            print(e)
+            print("fail to save to {}".format(check_path))
+        print("saving to {}".format(check_path))
+
+    def on_epoch_end(self, trainer:pl.Trainer, pl_module:pl.LightningModule):
+
+        epoch_loss_cls = pl_module.epoch_loss_cls
+        epoch_loss_regr = pl_module.epoch_loss_regr
+        epoch_loss = pl_module.epoch_loss
+        epoch = trainer.current_epoch
+
+        epoch_loss_cls /= epoch_size
+        epoch_loss_regr /= epoch_size
+        epoch_loss /= epoch_size
+
+        if (
+            self.best_loss_cls > epoch_loss_cls
+            or self.best_loss_regr > epoch_loss_regr
+            or self.best_loss > epoch_loss
+        ):
+            self.best_loss = epoch_loss
+            self.best_loss_regr = epoch_loss_regr
+            self.best_loss_cls = epoch_loss_cls
+            
+            self.save_checkpoint(
+                {
+                    "model_state_dict": pl_module.state_dict(),
+                    "epoch": epoch
+                },
+                epoch,
+                self.best_loss_cls,
+                self.best_loss_regr,
+                self.best_loss,
+            )
 
 
 class CTPN_Model(pl.LightningModule):
@@ -199,9 +271,8 @@ class CTPN_Model(pl.LightningModule):
         self.rpn_regress = basic_conv(512, 10 * 2, 1, 1, relu=False, bn=False)
 
         # loss classes
-        init = Initializer()
-        self.critetion_cls = init(RPN_CLS_Loss())
-        self.critetion_regr = init(RPN_REGR_Loss())
+        self.critetion_cls = RPN_CLS_Loss()
+        self.critetion_regr = RPN_REGR_Loss()
 
         # loss
         self.epoch_loss_cls = 0

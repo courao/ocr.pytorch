@@ -16,7 +16,6 @@ from ctpn_utils import cal_rpn
 import pytorch_lightning as pl
 from torch.utils.data import random_split
 import math
-from typing import Optional
 from torch.utils.data import DataLoader
 
 
@@ -219,42 +218,39 @@ class ICDARDataset(Dataset):
 
 
 class ICDARDataModule(pl.LightningDataModule):
-    def __init__(self, datadir, labelsdir, batch_size=1, num_workers=0, shuffle=True):
+    def __init__(self, datadir, labelsdir, train_val_split=0.8, **kwargs):
+        """
+        datadir: image's directory
+        labelsdir: annotations' directory
+        """
         super().__init__()
         self.datadir = datadir
         self.labelsdir = labelsdir
+        self.train_val_split = train_val_split
         self.img_names = os.listdir(self.datadir)
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.shuffle = shuffle
+        self.kwargs = kwargs
 
-    def setup(self, stage: Optional[str] = None):
-        """
-        :param txtfile: image name list text file
-        :param datadir: image's directory
-        :param labelsdir: annotations' directory
-        """
+        # check if directory exists
         if not os.path.isdir(self.datadir):
             raise Exception("[ERROR] {} is not a directory".format(datadir))
         if not os.path.isdir(self.labelsdir):
             raise Exception("[ERROR] {} is not a directory".format(labelsdir))
-
+        
+        # split data into train and val
         dataset_size = len(self.img_names)
         train_dataset_size = math.floor(dataset_size * 0.8)
         val_dataset_size = dataset_size - train_dataset_size
         self.train_data, self.val_data = random_split(
             self.img_names, [train_dataset_size, val_dataset_size]
         )
-
+           
     def train_dataloader(self):
         dataset = ICDARDataset(img_names=self.train_data,
                                datadir=self.datadir,
                                labelsdir=self.labelsdir)
         return DataLoader(
             dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            shuffle=self.shuffle,
+            **self.kwargs
         )
 
     def val_dataloader(self):
@@ -263,9 +259,7 @@ class ICDARDataModule(pl.LightningDataModule):
                                labelsdir=self.labelsdir)
         return DataLoader(
             dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            shuffle=self.shuffle,
+            **self.kwargs
         )
 
     def test_dataloader(self):
@@ -274,9 +268,7 @@ class ICDARDataModule(pl.LightningDataModule):
                                labelsdir=self.labelsdir)
         return DataLoader(
             dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            shuffle=self.shuffle,
+            **self.kwargs
         )
 
 
