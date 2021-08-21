@@ -235,7 +235,7 @@ class LossAndCheckpointCallback(Callback):
         epoch_loss_regr /= epoch_size
         epoch_loss /= epoch_size
 
-        # log loss
+        # log epoch loss
         dict_ = {
                 "epoch_loss_cls": epoch_loss_cls,
                 "epoch_loss_regr": epoch_loss_regr,
@@ -327,7 +327,7 @@ class CTPN_Model(pl.LightningModule):
         loss_regr = self.critetion_regr(regr, regrs)
         loss = loss_cls + loss_regr
 
-        # log loss
+        # log batch loss
         dict_ = {
                 "batch_loss_cls": loss_cls,
                 "batch_loss_regr": loss_regr,
@@ -350,3 +350,4 @@ class CTPN_Model(pl.LightningModule):
         # scheduler
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
         return [optimizer], [scheduler]
+        
