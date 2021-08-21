@@ -207,12 +207,6 @@ class LossAndCheckpointCallback(Callback):
         self.best_loss_regr = 100
         self.best_epoch_loss = 100
 
-    def on_epoch_start(self, trainer, pl_module):
-        pl_module.epoch_loss_cls = 0
-        pl_module.epoch_loss_regr = 0
-        pl_module.epoch_loss = 0
-
-
     def save_checkpoint(self, state, epoch, loss_cls, loss_regr, loss, ext="pth"):
         check_path = os.path.join(
             config.checkpoints_dir,
@@ -225,9 +219,13 @@ class LossAndCheckpointCallback(Callback):
             print(e)
             print("fail to save to {}".format(check_path))
         print("saving to {}".format(check_path))
+    
+    def on_epoch_start(self, trainer, pl_module):
+        pl_module.epoch_loss_cls = 0
+        pl_module.epoch_loss_regr = 0
+        pl_module.epoch_loss = 0
 
     def on_epoch_end(self, trainer:pl.Trainer, pl_module:pl.LightningModule):
-
         epoch_loss_cls = pl_module.epoch_loss_cls
         epoch_loss_regr = pl_module.epoch_loss_regr
         epoch_loss = pl_module.epoch_loss
@@ -237,6 +235,17 @@ class LossAndCheckpointCallback(Callback):
         epoch_loss_regr /= epoch_size
         epoch_loss /= epoch_size
 
+        # log loss
+        dict_ = {
+                "epoch_loss_cls": epoch_loss_cls,
+                "epoch_loss_regr": epoch_loss_regr,
+                "epoch_loss": epoch_loss,
+        }
+        self.log_dict(
+            dict_, on_step=False, on_epoch=True, prog_bar=True, logger=True
+        )
+
+        # save checkpoint
         if (
             self.best_loss_cls > epoch_loss_cls
             or self.best_loss_regr > epoch_loss_regr
@@ -317,6 +326,16 @@ class CTPN_Model(pl.LightningModule):
         loss_cls = self.critetion_cls(cls, clss)
         loss_regr = self.critetion_regr(regr, regrs)
         loss = loss_cls + loss_regr
+
+        # log loss
+        dict_ = {
+                "batch_loss_cls": loss_cls,
+                "batch_loss_regr": loss_regr,
+                "batch_loss": loss,
+        }
+        self.log_dict(
+            dict_, on_step=True, on_epoch=True, prog_bar=True, logger=True
+        )
 
         # update epoch loss
         self.epoch_loss_cls += loss_cls
