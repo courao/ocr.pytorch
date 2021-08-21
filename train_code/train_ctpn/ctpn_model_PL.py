@@ -167,7 +167,10 @@ class basic_conv(nn.Module):
         return x
 
 
-class EpochLossLogger(Callback):
+class EpochLossCallback(Callback):
+    """
+logs epoch loss and such
+    """
     def on_epoch_start(self, trainer, pl_module):
         pl_module.epoch_loss_cls = 0
         pl_module.epoch_loss_regr = 0

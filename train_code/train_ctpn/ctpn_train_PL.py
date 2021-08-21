@@ -8,7 +8,6 @@
 
 import os
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 import torch
 from torch.utils.data import DataLoader
 from torch import optim
@@ -16,7 +15,7 @@ import numpy as np
 import argparse
 
 import config
-from ctpn_model_PL import CTPN_Model, EpochLossLogger
+from ctpn_model_PL import CTPN_Model, EpochLossCallback
 from dataset_PL import ICDARDataModule
 import pytorch_lightning as pl
 
@@ -39,7 +38,10 @@ def train():
 
     model = CTPN_Model()
 
-    trainer = pl.Trainer(gpus=0)
+    trainer = pl.Trainer(gpus=0,
+                         log_every_n_steps=1,
+                         callbacks=[EpochLossCallback()])
+
     trainer.fit(model, datamodule)
 
 
