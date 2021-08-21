@@ -19,7 +19,8 @@ class Initializer:
     def __init__(self):
         pass
 
-    def init_module(m):
+    def init_module(m,x):
+        print(m,x)
         classname = m.__class__.__name__
         if classname.find("Conv") != -1:
             m.weight.data.normal_(0.0, 0.02)
@@ -234,8 +235,9 @@ class CTPN_Model(pl.LightningModule):
         return cls, regr
 
     def training_step(self, batch, batch_idx):
-        x = batch
-        cls, regr = self(x)
+        imgs, clss, regrs = batch
+        
+        cls, regr = self(imgs)
 
         # compute losses
         loss_cls = self.critetion_cls(cls, clss)
@@ -254,4 +256,4 @@ class CTPN_Model(pl.LightningModule):
         optimizer = optim.SGD(self.parameters(), lr=1e-3, momentum=0.9)
         # scheduler
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
-        return optimizer, scheduler
+        return [optimizer], [scheduler]

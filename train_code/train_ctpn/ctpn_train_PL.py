@@ -18,6 +18,7 @@ import argparse
 import config
 from ctpn_model_PL import CTPN_Model, EpochLossLogger
 from dataset_PL import ICDARDataModule
+import pytorch_lightning as pl
 
 
 def train():

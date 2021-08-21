@@ -95,10 +95,11 @@ class VOCDataset(Dataset):
 
 
 class ICDARDataset(Dataset):
-    def __init__(self, img_names, datadir):
+    def __init__(self, img_names, datadir, labelsdir):
         super().__init__()
         self.datadir = datadir
         self.img_names = img_names
+        self.labelsdir = labelsdir
 
     def __len__(self):
         return len(self.img_names)
@@ -233,20 +234,22 @@ class ICDARDataModule(pl.LightningDataModule):
         :param datadir: image's directory
         :param labelsdir: annotations' directory
         """
-        if not os.path.isdir(datadir):
+        if not os.path.isdir(self.datadir):
             raise Exception("[ERROR] {} is not a directory".format(datadir))
-        if not os.path.isdir(labelsdir):
+        if not os.path.isdir(self.labelsdir):
             raise Exception("[ERROR] {} is not a directory".format(labelsdir))
 
         dataset_size = len(self.img_names)
         train_dataset_size = math.floor(dataset_size * 0.8)
         val_dataset_size = dataset_size - train_dataset_size
         self.train_data, self.val_data = random_split(
-            mnist_full, [train_dataset_size, val_dataset_size]
+            self.img_names, [train_dataset_size, val_dataset_size]
         )
 
     def train_dataloader(self):
-        dataset = ICDARDataset(img_names=self.train_data, datadir=self.datadir)
+        dataset = ICDARDataset(img_names=self.train_data,
+                               datadir=self.datadir,
+                               labelsdir=self.labelsdir)
         return DataLoader(
             dataset,
             batch_size=self.batch_size,
@@ -255,7 +258,9 @@ class ICDARDataModule(pl.LightningDataModule):
         )
 
     def val_dataloader(self):
-        dataset = ICDARDataset(img_names=self.val_data, datadir=self.datadir)
+        dataset = ICDARDataset(img_names=self.val_data,
+                               datadir=self.datadir,
+                               labelsdir=self.labelsdir)
         return DataLoader(
             dataset,
             batch_size=self.batch_size,
@@ -264,7 +269,9 @@ class ICDARDataModule(pl.LightningDataModule):
         )
 
     def test_dataloader(self):
-        dataset = ICDARDataset(img_names=self.val_data, datadir=self.datadir)
+        dataset = ICDARDataset(img_names=self.val_data,
+                               datadir=self.datadir,
+                               labelsdir=self.labelsdir)
         return DataLoader(
             dataset,
             batch_size=self.batch_size,

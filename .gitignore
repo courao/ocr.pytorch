@@ -36,3 +36,4 @@
 .DS_Store
 *.bak
 *.pyc
+**/lightning_logs
