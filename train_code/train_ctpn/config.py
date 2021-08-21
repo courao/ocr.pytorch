@@ -10,12 +10,14 @@ import os
 from getpaths import getpath
 
 
-base_dir = getpath() / ".." / ".." / "ocr_pytorch_data"
+base_dir = getpath() / ".." / ".." / ".." / "ocr_pytorch_data"
 
 icdar17_mlt_img_dir = base_dir / "ICDAR2017_MLT" / "train/"
 icdar17_mlt_gt_dir = base_dir / "ICDAR2017_MLT" / "train_gt/"
 num_workers = 0  # because I'm on cpu
-pretrained_weights = base_dir / ".." / "checkpoints/CTPN.pth"
+pretrained_weights = base_dir / ".." / "ocr_pytorch" / "checkpoints" / "CTPN.pth"
+
+print(os.path.isdir(icdar17_mlt_img_dir))
 
 
 anchor_scale = 16
