@@ -6,6 +6,8 @@ from torch.nn import CTCLoss
 from torch.autograd import Variable
 from utils import strLabelConverter
 from torch import optim
+import torch
+import os
 
 
 class BidirectionalLSTM(nn.Module):
@@ -40,6 +42,41 @@ class InitializeWeights(Callback):
 
     def on_train_start(self, trainer, pl_module):
         pl_module.apply(self.weights_init)
+
+
+class LoadCheckpoint(Callback):
+    def __init__(self, checkpoint_path):
+        super().__init__()
+        self.checkpoint_path = checkpoint_path
+
+    def using_gpu(self):
+        # torch.cuda.is_available() fails on MAC
+        try:
+            torch.cuda.current_device()
+            torch.cuda.is_available()
+            # GPU is used!
+            return True
+        except AssertionError:
+            # GPU is not being used!
+            return False
+        except AttributeError:
+            # GPU is not being used!
+            return False
+        except RuntimeError:
+            # GPU is not being used!
+            return False
+
+    def on_pretrain_routine_start(self, trainer, pl_module):
+        # load checkpoint if checkpoint is found
+        if os.path.isfile(self.checkpoint_path):
+            device = torch.device("cuda:0" if self.using_gpu() else "cpu")
+            pl_module.load_state_dict(
+                torch.load(self.checkpoint_path, map_location="cpu")
+            )
+            pl_module.to(device)
+            pl_module.eval()
+        else:
+            print("checkpoint not found, skipping checkpoint load step")
 
 
 class CRNN(pl.LightningModule):
@@ -113,7 +150,7 @@ class CRNN(pl.LightningModule):
 
         return output
 
-    def training_step(self, batch, batch_idx):
+    def shared_step(self, batch, batch_idx):
         data = batch
         image, texts = data
         batch_size = image.size(0)
@@ -127,19 +164,27 @@ class CRNN(pl.LightningModule):
 
         # compute and log loss
         loss = (
-            self.criterion(preds.log_softmax(2), text, preds_size, length)
-            / batch_size
+            self.criterion(preds.log_softmax(2), text, preds_size, length) / batch_size
         )
         self.log(
             "batch_loss",
             loss,
-            on_batch=True,
+            on_step=True,
             on_epoch=True,
             prog_bar=True,
-            trainer=True,
+            logger=True,
         )
 
         return loss
+
+    def training_step(self, batch, batch_idx):
+        return self.shared_step(batch, batch_idx)
+
+    def validation_step(self, batch, batch_idx):
+        return self.shared_step(batch, batch_idx)
+
+    def test_step(self, batch, batch_idx):
+        return self.shared_step(batch, batch_idx)
 
     def configure_optimizers(self):
         if self.config.adam:

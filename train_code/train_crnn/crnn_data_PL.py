@@ -11,13 +11,9 @@ import numpy as np
 import codecs
 import trans
 
-
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 
-
-debug_idx = 0
-debug = True
 
 crop = trans.Crop(probability=0.1)
 crop2 = trans.Crop2(probability=1.1)
@@ -48,58 +44,6 @@ adjust_resolution.setparam()
 stretch.setparam()
 
 
-def randomColor(image):
-    """
-    对图像进行颜色抖动
-    :param image: PIL的图像image
-    :return: 有颜色色差的图像image
-    """
-    random_factor = np.random.randint(0, 31) / 10.0  # 随机因子
-    color_image = ImageEnhance.Color(image).enhance(random_factor)  # 调整图像的饱和度
-    random_factor = np.random.randint(10, 21) / 10.0  # 随机因子
-    brightness_image = ImageEnhance.Brightness(color_image).enhance(
-        random_factor
-    )  # 调整图像的亮度
-    random_factor = np.random.randint(10, 21) / 10.0  # 随机因1子
-    contrast_image = ImageEnhance.Contrast(brightness_image).enhance(
-        random_factor
-    )  # 调整图像对比度
-    random_factor = np.random.randint(0, 31) / 10.0  # 随机因子
-    return ImageEnhance.Sharpness(contrast_image).enhance(random_factor)  # 调整图像锐度
-
-
-def randomGaussian(image, mean=0.2, sigma=0.3):
-    """
-     对图像进行高斯噪声处理
-    :param image:
-    :return:
-    """
-
-    def gaussianNoisy(im, mean=0.2, sigma=0.3):
-        """
-        对图像做高斯噪音处理
-        :param im: 单通道图像
-        :param mean: 偏移量
-        :param sigma: 标准差
-        :return:
-        """
-        for _i in range(len(im)):
-            im[_i] += random.gauss(mean, sigma)
-        return im
-
-    # 将图像转化成数组
-    img = np.asarray(image)
-    img.flags.writeable = True  # 将数组改为读写模式
-    width, height = img.shape[:2]
-    img_r = gaussianNoisy(img[:, :, 0].flatten(), mean, sigma)
-    img_g = gaussianNoisy(img[:, :, 1].flatten(), mean, sigma)
-    img_b = gaussianNoisy(img[:, :, 2].flatten(), mean, sigma)
-    img[:, :, 0] = img_r.reshape([width, height])
-    img[:, :, 1] = img_g.reshape([width, height])
-    img[:, :, 2] = img_b.reshape([width, height])
-    return Image.fromarray(np.uint8(img))
-
-
 def inverse_color(image):
     if np.random.random() < 0.4:
         image = ImageOps.invert(image)
@@ -120,30 +64,6 @@ def data_tf(img):
     # img = rotate.process(img)
     img = salt.process(img)
     img = inverse_color(img)
-    img = stretch.process(img)
-    if debug and np.random.random() < 0.001:
-        global debug_idx
-        img.save("debug_files/{:05}.jpg".format(debug_idx))
-        debug_idx += 1
-        if debug_idx == 10000:
-            debug_idx = 0
-    return img
-
-
-def data_tf_fullimg(img, loc):
-    left, top, right, bottom = loc
-    img = crop2.process([img, left, top, right, bottom])
-    img = random_contrast.process(img)
-    img = random_brightness.process(img)
-    img = random_color.process(img)
-    img = random_sharpness.process(img)
-    img = compress.process(img)
-    img = exposure.process(img)
-    # img = rotate.process(img)
-    img = blur.process(img)
-    img = salt.process(img)
-    # img = inverse_color(img)
-    img = adjust_resolution.process(img)
     img = stretch.process(img)
     return img
 
@@ -178,6 +98,35 @@ class resizeNormalize(object):
         return img
 
 
+class alignCollate(object):
+    def __init__(self, imgH=32, imgW=100, keep_ratio=False, min_ratio=1):
+        self.imgH = imgH
+        self.imgW = imgW
+        self.keep_ratio = keep_ratio
+        self.min_ratio = min_ratio
+
+    def __call__(self, batch):
+        images, labels = zip(*batch)
+
+        imgH = self.imgH
+        imgW = self.imgW
+        if self.keep_ratio:
+            ratios = []
+            for image in images:
+                w, h = image.size
+                ratios.append(w / float(h))
+            ratios.sort()
+            max_ratio = ratios[-1]
+            imgW = int(np.floor(max_ratio * imgH))
+            imgW = max(imgH * self.min_ratio, imgW)  # assure imgH >= imgW
+
+        transform = resizeNormalize((imgW, imgH))
+        images = [transform(image) for image in images]
+        images = torch.cat([t.unsqueeze(0) for t in images], 0)
+
+        return images, labels
+
+
 class MyDataset(Dataset):
     def __init__(
         self,
@@ -185,9 +134,9 @@ class MyDataset(Dataset):
         train=True,
         transform=data_tf,
         target_transform=None,
-        remove_blank=False,
+        remove_blank=True,
     ):
-        super(Dataset, self).__init__()
+        super().__init__()
         self.transform = transform
         self.target_transform = target_transform
         self.info_filename = info_filename
@@ -197,21 +146,25 @@ class MyDataset(Dataset):
         self.files = list()
         self.labels = list()
         for info_name in self.info_filename:
+
             with open(info_name) as f:
                 content = f.readlines()
                 for line in content:
-                    if "\t" in line:
-                        if len(line.split("\t")) != 2:
-                            print(line)
-                        fname, label = line.split("\t")
+
+                    if r"\t" in line:
+                        if len(line.split(r"\t")) != 2:
+                            print("abnormal text:", line)
+                        fname, label = line.split(r"\t")
 
                     else:
                         fname, label = line.split("g:")
                         fname += "g"
+
                     if remove_blank:
                         label = label.strip()
                     else:
                         label = " " + label.strip() + " "
+
                     self.files.append(fname)
                     self.labels.append(label)
 
@@ -223,6 +176,7 @@ class MyDataset(Dataset):
         if self.transform is not None:
             img = self.transform(img)
         img = img.convert("L")
+
         label = self.labels[index]
         if self.target_transform is not None:
             label = self.target_transform(label)
@@ -247,7 +201,7 @@ class MyDataModule(pl.LightningDataModule):
             batch_size=self.config.batchSize,
             shuffle=True,
             num_workers=int(self.config.workers),
-            collate_fn=crnn_data_PL.alignCollate(
+            collate_fn=alignCollate(
                 imgH=self.config.imgH,
                 imgW=self.config.imgW,
                 keep_ratio=self.config.keep_ratio,
@@ -261,7 +215,16 @@ class MyDataModule(pl.LightningDataModule):
         )
 
     def val_dataloader(self):
-        return DataLoader(MyDataset(**self.kwargs))
+        return DataLoader(
+            MyDataset(**self.kwargs),
+            batch_size=self.config.batchSize,
+            num_workers=int(self.config.workers),
+            collate_fn=alignCollate(
+                imgH=self.config.imgH,
+                imgW=self.config.imgW,
+                keep_ratio=self.config.keep_ratio,
+            ),
+        )
 
 
 if __name__ == "__main__":

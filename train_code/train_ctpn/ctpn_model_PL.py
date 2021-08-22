@@ -317,7 +317,7 @@ class CTPN_Model(pl.LightningModule):
 
         return cls, regr
 
-    def training_step(self, batch, batch_idx):
+    def shared_step(self, batch, batch_idx):
         imgs, clss, regrs = batch
         
         cls, regr = self(imgs)
@@ -343,6 +343,15 @@ class CTPN_Model(pl.LightningModule):
         self.epoch_loss += loss
 
         return loss
+    
+    def training_step(self, batch, batch_idx):
+        return self.shared_step(batch, batch_idx)
+    
+    def validation_step(self, batch, batch_idx):
+        return self.shared_step(batch, batch_idx)
+    
+    def test_step(self, batch, batch_idx):
+        return self.shared_step(batch, batch_idx)
 
     def configure_optimizers(self):
         # optimizer

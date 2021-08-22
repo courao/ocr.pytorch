@@ -16,12 +16,12 @@ remove_blank = False
 
 
 saved_model_prefix = "CRNN-1010"
-train_infofile = ["path_to_train_infofile1.txt", "path_to_train_infofile2.txt"]
+train_infofile = ["/Users/mosaicchurchhtx/Desktop/ocr_pytorch/text_file.txt"]
 val_infofile = "path_to_test_infofile.txt"
 keep_ratio = True
 use_log = True
-pretrained_model = "path_to_your_pretrained_model.pth"
-batchSize = 80
+pretrained_model = "/Users/mosaicchurchhtx/Desktop/CRNN-1010.pth"
+batchSize = 1  # make 80 if gpu
 workers = 0  # make 10 if gpu
 adam = True
 

@@ -121,7 +121,7 @@ class PytorchOcr:
             )
         else:
             # self.model = nn.DataParallel(self.model)
-            self.model.load_state_dict(torch.load(model_path, map_location="cpu"))
+            self.model.load_state_dict(torch.load(model_path, map_location=device))
         self.model.eval()
         self.converter = strLabelConverter(self.alphabet)
 
