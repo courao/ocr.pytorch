@@ -16,8 +16,7 @@ icdar17_mlt_gt_dir = '/home/data2/egz/ICDAR2017_MLT/train_gt/'
 num_workers = 2
 pretrained_weights = 'checkpoints/v3_ctpn_ep22_0.3801_0.0971_0.4773.pth'
 
-
-
+max_epochs = 30
 anchor_scale = 16
 IOU_NEGATIVE = 0.3
 IOU_POSITIVE = 0.7

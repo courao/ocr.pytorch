@@ -22,14 +22,12 @@ def train():
     torch.random.manual_seed(random_seed)
     np.random.seed(random_seed)
 
-    max_epochs = 30
-
     datamodule = ICDARDataModule(
         config.icdar17_mlt_img_dir,
         config.icdar17_mlt_gt_dir,
         batch_size=1,
         num_workers=config.num_workers,
-        shuffle=True,
+        shuffle=True
     )
 
     len_train_dataset = len(datamodule.train_data)
@@ -37,7 +35,7 @@ def train():
     model = CTPN_Model()
 
     trainer = pl.Trainer(gpus=1, # number of gpus, 0 if you want to use cpu
-                         max_epochs=max_epochs,
+                         max_epochs=config.max_epochs,
                          log_every_n_steps=1,
                          callbacks=[LoadCheckpoint(config.pretrained_weights),
                                     InitializeWeights(),

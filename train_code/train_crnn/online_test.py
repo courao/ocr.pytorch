@@ -1,5 +1,4 @@
 import torch
-from torch.autograd import Variable
 import utils
 import mydataset
 from PIL import Image
@@ -12,6 +11,34 @@ import config
 
 alphabet = keys.alphabet_v2
 converter = utils.strLabelConverter(alphabet.copy())
+
+
+def val(net, dataset, criterion, max_iter=100):
+    print("Start val")
+    for p in net.parameters():
+        p.requires_grad = False
+
+    num_correct, num_all = val_model(
+        config.val_infofile,
+        net,
+        True,
+        log_file="compare-" + config.saved_model_prefix + ".log",
+    )
+    accuracy = num_correct / num_all
+
+    print("ocr_acc: %f" % (accuracy))
+    global best_acc
+    if accuracy > best_acc:
+        best_acc = accuracy
+        torch.save(
+            crnn.state_dict(),
+            "{}_{}_{}.pth".format(
+                config.saved_model_prefix,
+                epoch,
+                int(best_acc * 1000),
+            ),
+        )
+    torch.save(crnn.state_dict(), f"{config.saved_model_prefix}")
 
 
 def val_model(infofile, model, gpu, log_file="0625.log"):
@@ -37,10 +64,6 @@ def val_model(infofile, model, gpu, log_file="0625.log"):
             else:
                 print("filename:{}\npred  :{}\ntarget:{}".format(fname, res, label))
                 h.write("filename:{}\npred  :{}\ntarget:{}\n".format(fname, res, label))
-            # else:
-            #     # new_name = saved_path + fname.split('/')[-1]
-            #     # shutil.copyfile(fname, new_name)
-            #     wrong_results.append('res:{} / label:{}'.format(res,label))
             num_all += 1
     h.write(
         "ocr_correct: {}/{}/{}\n".format(num_correct, num_all, num_correct / num_all)
@@ -78,30 +101,4 @@ def val_on_image(img, model, gpu):
 
 
 if __name__ == "__main__":
-    import sys
-
-    model_path = "./crnn_models/CRNN-0627-crop_48_901.pth"
-    gpu = True
-    if not torch.cuda.is_available():
-        gpu = False
-
-    model = crnn.CRNN(config.imgH, 1, len(alphabet) + 1, 256)
-    if gpu:
-        model = model.cuda()
-    print("loading pretrained model from %s" % model_path)
-    if gpu:
-        model.load_state_dict(torch.load(model_path))
-    else:
-        model.load_state_dict(
-            torch.load(model_path, map_location=lambda storage, loc: storage)
-        )
-
-    if len(sys.argv) > 1 and "train" in sys.argv[1]:
-        infofile = "data_set/infofile_updated_0627_train.txt"
-        print(val_model(infofile, model, gpu, "0627_train.log"))
-    elif len(sys.argv) > 1 and "gen" in sys.argv[1]:
-        infofile = "data_set/infofile_0627_gen_test.txt"
-        print(val_model(infofile, model, gpu, "0627_gen.log"))
-    else:
-        infofile = "data_set/infofile_updated_0627_test.txt"
-        print(val_model(infofile, model, gpu, "0627_test.log"))
+    pass
