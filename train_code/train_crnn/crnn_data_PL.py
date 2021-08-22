@@ -238,7 +238,7 @@ class MyDataModule(pl.LightningDataModule):
         self.config = config
         self.kwargs = kwargs
 
-    def setup(self):
+    def setup(self, stage):
         pass
 
     def train_dataloader(self):

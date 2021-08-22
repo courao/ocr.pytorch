@@ -22,7 +22,7 @@ def train():
         callbacks=[InitializeWeights()],
     )
 
-    trainer.fit(data, model)
+    trainer.fit(model, data)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ from pytorch_lightning.callbacks import Callback
 from torch.nn import CTCLoss
 from torch.autograd import Variable
 from utils import strLabelConverter
+from torch import optim
 
 
 class BidirectionalLSTM(nn.Module):
@@ -101,7 +102,6 @@ class CRNN(pl.LightningModule):
             self.relu4_2(self.conv4_2(self.relu4_1(self.bn4(self.conv4_1(x)))))
         )
         conv = self.relu5(self.bn5(self.conv5(x)))
-        # print(conv.size())
 
         b, c, h, w = conv.size()
         assert h == 1, "the height of conv must be 1"
@@ -120,14 +120,14 @@ class CRNN(pl.LightningModule):
 
         text, length = self.converter.encode(texts)
 
-        preds = net(image)  # seqLength x batchSize x alphabet_size
+        preds = self(image)  # seqLength x batchSize x alphabet_size
         preds_size = Variable(
             torch.IntTensor([preds.size(0)] * batch_size)
         )  # seqLength x batchSize
 
         # compute and log loss
         loss = (
-            self.criterion(preds.log_softmax(2).cpu(), text, preds_size, length)
+            self.criterion(preds.log_softmax(2), text, preds_size, length)
             / batch_size
         )
         self.log(
@@ -142,14 +142,14 @@ class CRNN(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        if config.adam:
+        if self.config.adam:
             optimizer = optim.Adam(
-                self.parameters(), lr=config.lr, betas=(config.beta1, 0.999)
+                self.parameters(), lr=self.config.lr, betas=(self.config.beta1, 0.999)
             )
-        elif config.adadelta:
-            optimizer = optim.Adadelta(self.parameters(), lr=config.lr)
+        elif self.config.adadelta:
+            optimizer = optim.Adadelta(self.parameters(), lr=self.config.lr)
         else:
-            optimizer = optim.RMSprop(self.parameters(), lr=config.lr)
+            optimizer = optim.RMSprop(self.parameters(), lr=self.config.lr)
 
         return optimizer
 
