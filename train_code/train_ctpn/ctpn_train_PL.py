@@ -13,7 +13,7 @@ import numpy as np
 import config
 from ctpn_model_PL import CTPN_Model
 from ctpn_model_PL import LossAndCheckpointCallback, InitializeWeights, LoadCheckpoint
-from dataset_PL import ICDARDataModule
+from ctpn_data_PL import ICDARDataModule
 import pytorch_lightning as pl
 
 

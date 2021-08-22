@@ -112,9 +112,9 @@ def pshowtwo(image1, image2):
 
 
 def pil2cv(image):
-    # assert isinstance(image, PIL.Image.Image) or isinstance(image,
-    #                                                         PIL.JpegImagePlugin.JpegImageFile), f'input image type is not PIL.image and is {type(
-    #     image)}'
+    """
+    expects image to be a PIL image
+    """
     if len(image.split()) == 1:
         return np.asarray(image)
     elif len(image.split()) == 3:

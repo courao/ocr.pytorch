@@ -1,5 +1,6 @@
 import torch.nn as nn
 from collections import OrderedDict
+import pytorch_lightning as pl
 
 
 class BidirectionalLSTM(nn.Module):
@@ -19,9 +20,9 @@ class BidirectionalLSTM(nn.Module):
         return output
 
 
-class CRNN(nn.Module):
+class CRNN(pl.LightningModule):
     def __init__(self, imgH, nc, nclass, nh, leakyRelu=False):
-        super(CRNN, self).__init__()
+        super().__init__()
         assert imgH % 16 == 0, "imgH has to be a multiple of 16"
 
         # 1x32x128
@@ -85,7 +86,7 @@ class CRNN(nn.Module):
         return output
 
 
-class CRNN_v2(nn.Module):
+class CRNN_v2(pl.LightningModule):
     def __init__(self, imgH, nc, nclass, nh, leakyRelu=False):
         super(CRNN_v2, self).__init__()
         assert imgH % 16 == 0, "imgH has to be a multiple of 16"
@@ -203,9 +204,9 @@ class basic_res_block(nn.Module):
         return out
 
 
-class CRNN_res(nn.Module):
+class CRNN_res(pl.LightningModule()):
     def __init__(self, imgH, nc, nclass, nh):
-        super(CRNN_res, self).__init__()
+        super().__init__()
         assert imgH % 16 == 0, "imgH has to be a multiple of 16"
 
         self.conv1 = nn.Conv2d(nc, 64, 3, 1, 1)

@@ -285,17 +285,6 @@ class Stretch(TransBase):
 
 
 if __name__ == "__main__":
-    # img_name = 'test_files/NID 1468666480 (1) Front.jpg'
-    # img = Image.open(img_name)
-    # w,h = img.size
-    #
-    # img.show()
-    # rc = Crop2()
-    # rc.setparam()
-    # img = rc.process([img,362,418,581,463])
-    # # img = ImageOps.invert(img)
-    # img.show()
-
     img_name = "data_set/images_0701_EC_3/0.png"
     img = Image.open(img_name)
     print(img.size[1])

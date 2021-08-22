@@ -159,7 +159,7 @@ class MyDataset(Dataset):
         target_transform=None,
         remove_blank=False,
     ):
-        super(Dataset, self).__init__()
+        super().__init__()
         self.transform = transform
         self.target_transform = target_transform
         self.info_filename = info_filename
@@ -218,7 +218,7 @@ class MyDatasetPro(Dataset):
         fullimg_transform=data_tf_fullimg,
         target_transform=None,
     ):
-        super(Dataset, self).__init__()
+        super().__init__()
         self.txtline_transform = txtline_transform
         self.fullimg_transform = fullimg_transform
         self.target_transform = target_transform
