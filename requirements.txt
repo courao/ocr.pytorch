@@ -1,0 +1,4 @@
+pytorch-lightning
+pillow
+tensorboard
+cv2
