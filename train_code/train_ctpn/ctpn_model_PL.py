@@ -280,8 +280,8 @@ class CTPN_Model(pl.LightningModule):
         self.rpn_regress = basic_conv(512, 10 * 2, 1, 1, relu=False, bn=False)
 
         # loss classes
-        self.critetion_cls = RPN_CLS_Loss()
-        self.critetion_regr = RPN_REGR_Loss()
+        self.criterion_cls = RPN_CLS_Loss() # for classifying which language
+        self.criterion_regr = RPN_REGR_Loss() # for predicting bounding boxes for text
 
         # loss
         self.epoch_loss_cls = 0
@@ -323,8 +323,8 @@ class CTPN_Model(pl.LightningModule):
         cls, regr = self(imgs)
 
         # compute losses
-        loss_cls = self.critetion_cls(cls, clss)
-        loss_regr = self.critetion_regr(regr, regrs)
+        loss_cls = self.criterion_cls(cls, clss)
+        loss_regr = self.criterion_regr(regr, regrs)
         loss = loss_cls + loss_regr
 
         # log batch loss

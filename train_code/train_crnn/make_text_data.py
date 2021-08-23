@@ -15,7 +15,7 @@ text_list = []
 
 for file_name in file_list:
     image_text = file_name.split("_")[1]
-    text_list.append(file_dir / (file_name + "\\t" + image_text + "\n"))
+    text_list.append(file_dir / (file_name + r"\t" + image_text + "\n"))
 
 
 text = "".join(text_list)

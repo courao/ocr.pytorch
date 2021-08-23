@@ -1,13 +1,13 @@
-import torch.nn as nn
-from collections import OrderedDict
-import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from torch.nn import CTCLoss
+from collections import OrderedDict
 from torch.autograd import Variable
 from utils import strLabelConverter
 from torchvision import transforms
 from PIL import Image, ImageDraw
+import pytorch_lightning as pl
+from torch.nn import CTCLoss
 from torch import optim
+import torch.nn as nn
 import numpy as np
 import torchvision
 import torch
@@ -170,11 +170,12 @@ class CRNN(pl.LightningModule):
         loss = (
             self.criterion(preds.log_softmax(2), text, preds_size, length) / batch_size
         )
+        
         self.log(
             "batch_loss",
-            loss,
+            loss.item(),
             on_step=True,
-            on_epoch=True,
+            on_epoch=False,
             prog_bar=True,
             logger=True,
         )
@@ -200,7 +201,7 @@ class CRNN(pl.LightningModule):
         txt = self.get_text(preds)
 
         # visualize data
-        grid_A = []
+        grid = []
         markdown_text = []
 
         to_image = transforms.ToTensor()
@@ -217,13 +218,17 @@ class CRNN(pl.LightningModule):
 
             tensor = torch.stack([image[i], to_image(new_image)])
             tensor = (tensor + 1) / 2
-            grid_A.append(tensor)
+            grid.append(tensor)
 
             # add text
             markdown_text.append(texts[i])
 
         # combine images to one image
-        grid_A = torchvision.utils.make_grid(torch.cat(grid_A, 0), 2)
+        grid = torchvision.utils.make_grid(torch.cat(grid, 0), 2)
+
+        self.logger.experiment.add_image(
+            "image --> predicted text", grid, self.current_epoch, dataformats="CHW"
+        )
 
         return preds
 

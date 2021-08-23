@@ -3,7 +3,10 @@ from math import *
 import numpy as np
 from detect.ctpn_predict import get_det_boxes
 from recognize.crnn_recognizer import PytorchOcr
+from PIL import Image
 
+
+# load model once
 recognizer = PytorchOcr()
 
 
@@ -20,7 +23,11 @@ def sort_box(box):
     return box
 
 
-def dumpRotateImage(img, degree, pt1, pt2, pt3, pt4):
+def dumpRotateImage(img, degree, pt1, pt2, pt3, pt4) -> Image:
+    """
+    turn an image by a number of degrees
+    return PIL.Image
+    """
     height, width = img.shape[:2]
     heightNew = int(
         width * fabs(sin(radians(degree))) + height * fabs(cos(radians(degree)))
@@ -48,13 +55,22 @@ def dumpRotateImage(img, degree, pt1, pt2, pt3, pt4):
     return imgOut
 
 
-def charRec(img, text_recs, adjust=False):
+def charRec(img, text_recs, adjust=False) -> dict:
     """
-    Load OCR model for character recognition
+    Chop img into text_recs (rectangles) that have text in them
+    Use CRNN model for character recognition on those rectangles
+
+    Returns dict of:
+    {
+        1: [<bbox>, <text>]
+        2: [<bbox>, <text>]
+        ...
+    }
     """
     results = {}
     xDim, yDim = img.shape[1], img.shape[0]
 
+    # rec: large rectangles with text inside
     for index, rec in enumerate(text_recs):
         xlength = int((rec[6] - rec[0]) * 0.1)
         ylength = int((rec[7] - rec[1]) * 0.2)
@@ -68,29 +84,35 @@ def charRec(img, text_recs, adjust=False):
             pt2 = (rec[2], rec[3])
             pt3 = (min(rec[6], xDim - 2), min(yDim - 2, rec[7]))
             pt4 = (rec[4], rec[5])
-
-        degree = degrees(atan2(pt2[1] - pt1[1], pt2[0] - pt1[0]))  # Image tilt angle
-
+        
+        # tilt image if rectangle is slanted
+        # we want straight rectangles to go into CRNN
+        degree = degrees(atan2(pt2[1] - pt1[1], pt2[0] - pt1[0]))
         partImg = dumpRotateImage(img, degree, pt1, pt2, pt3, pt4)
-        # dis(partImg)
-        # Filter abnormal parts of the image
+        
+        # Filter out images with x, y dimensions == 0
         if (
-            partImg.shape[0] < 1
-            or partImg.shape[1] < 1
-            or partImg.shape[0] > partImg.shape[1]
+            partImg.shape[0] < 1      # x dimension == 0
+            or partImg.shape[1] < 1   # y dimension == 0
+            or partImg.shape[0] > partImg.shape[1] # x-dim > y-dim
         ):
             continue
+        
+        # Recognize text on those tiny boxes
         text = recognizer.recognize(partImg)
-        if len(text) > 0:
-            results[index] = [rec]
-            results[index].append(text)  # Recognize text
+
+        if len(text) > 0: # make sure text != ""
+            results[index] = [rec] + [text]
 
     return results
 
 
 def ocr(image):
-    # detect
+    # detect large boxes of text (CTPN)
     text_recs, img_framed, image = get_det_boxes(image)
+    # sort large boxes, converting to something CRNN would understand
     text_recs = sort_box(text_recs)
+    # detect characters on those large boxes (CRNN)
     result = charRec(image, text_recs)
+    
     return result, img_framed

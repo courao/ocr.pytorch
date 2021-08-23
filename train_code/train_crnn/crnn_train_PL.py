@@ -1,3 +1,12 @@
+'''
+Data comes in in the form of images paired to text files that have:
+
+x1,y1,x2,y2,x3,y3,x4,y4, script_language, transcription
+
+
+'''
+
+
 import os
 from crnn_data_PL import MyDataModule, resizeNormalize
 from crnn_model_PL import CRNN, InitializeWeights, LoadCheckpoint
