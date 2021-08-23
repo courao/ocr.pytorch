@@ -353,7 +353,7 @@ class CTPN_Model(pl.LightningModule):
         # visualize bounding boxes and text
 
         resize_dim, img_path, images, real_cls, real_regr = batch
-        
+
         pred_cls, pred_regr = self(images)
 
         # visualize data
@@ -365,11 +365,8 @@ class CTPN_Model(pl.LightningModule):
             w, h = resize_dim
             w = w.item()
             h = h.item()
-            print(w,h)
-            img_copy = np.array(Image.open(img_path[0]).resize((w,h)))
-            text_recs, img_framed, images = get_det_boxes(
-                img_copy, pred_cls, pred_regr
-            )
+            img_copy = np.array(Image.open(img_path[0]).resize((w, h)))
+            text_recs, img_framed, images = get_det_boxes(img_copy, pred_cls, pred_regr)
 
             tensor = torch.stack([to_tensor(img_framed)])
             # tensor = (tensor + 1) / 2

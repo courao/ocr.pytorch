@@ -170,7 +170,7 @@ class CRNN(pl.LightningModule):
         loss = (
             self.criterion(preds.log_softmax(2), text, preds_size, length) / batch_size
         )
-        
+
         self.log(
             "batch_loss",
             loss.item(),

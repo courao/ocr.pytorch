@@ -84,24 +84,24 @@ def charRec(img, text_recs, adjust=False) -> dict:
             pt2 = (rec[2], rec[3])
             pt3 = (min(rec[6], xDim - 2), min(yDim - 2, rec[7]))
             pt4 = (rec[4], rec[5])
-        
+
         # tilt image if rectangle is slanted
         # we want straight rectangles to go into CRNN
         degree = degrees(atan2(pt2[1] - pt1[1], pt2[0] - pt1[0]))
         partImg = dumpRotateImage(img, degree, pt1, pt2, pt3, pt4)
-        
+
         # Filter out images with x, y dimensions == 0
         if (
-            partImg.shape[0] < 1      # x dimension == 0
-            or partImg.shape[1] < 1   # y dimension == 0
-            or partImg.shape[0] > partImg.shape[1] # x-dim > y-dim
+            partImg.shape[0] < 1  # x dimension == 0
+            or partImg.shape[1] < 1  # y dimension == 0
+            or partImg.shape[0] > partImg.shape[1]  # x-dim > y-dim
         ):
             continue
-        
+
         # Recognize text on those tiny boxes
         text = recognizer.recognize(partImg)
 
-        if len(text) > 0: # make sure text != ""
+        if len(text) > 0:  # make sure text != ""
             results[index] = [rec] + [text]
 
     return results
@@ -121,5 +121,5 @@ def ocr(image: np.array):
     text_recs = sort_box(text_recs)
     # detect characters on those large boxes (CRNN)
     result = charRec(image, text_recs)
-    
+
     return result, img_framed

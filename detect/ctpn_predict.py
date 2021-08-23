@@ -118,7 +118,7 @@ def get_det_boxes(image, display=True, expand=True):
                 )
 
         #      text_rectangles, img_framed, image
-        return text,            image_c,    image_r
+        return text, image_c, image_r
 
 
 if __name__ == "__main__":

@@ -192,7 +192,7 @@ class ICDARDataset(Dataset):
             h = int(h / rescale_fac)
             w = int(w / rescale_fac)
             img = cv2.resize(img, (w, h))
-        
+
         if self.val_data:
             img_copy = img_copy.resize((w, h))
 
@@ -225,7 +225,7 @@ class ICDARDataset(Dataset):
         if self.val_data:
             # include image while validating
             # because transforms are irreversible, I think
-            return (w,h), img_path, m_img, cls, regr
+            return (w, h), img_path, m_img, cls, regr
         else:
             return m_img, cls, regr
 
@@ -265,7 +265,7 @@ class ICDARDataModule(pl.LightningDataModule):
         self.train_data, self.val_data = random_split(
             self.img_names, [train_dataset_size, val_dataset_size]
         )
-    
+
     def collate_fn(self, batch):
         # very important, dataloader will throw errors
         # expects tensors inside each batch to be the same size
@@ -279,14 +279,19 @@ class ICDARDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         dataset = ICDARDataset(
-            img_names=self.val_data, datadir=self.datadir, labelsdir=self.labelsdir, val_data=True
+            img_names=self.val_data,
+            datadir=self.datadir,
+            labelsdir=self.labelsdir,
+            val_data=True,
         )
         # return image data with dataloader since the transforms are irreversible
-        return DataLoader(dataset,
-                          shuffle=False,
-                          batch_size=self.config.batch_size,
-                          num_workers=self.config.num_workers,
-                          collate_fn=None)
+        return DataLoader(
+            dataset,
+            shuffle=False,
+            batch_size=self.config.batch_size,
+            num_workers=self.config.num_workers,
+            collate_fn=None,
+        )
 
     def test_dataloader(self):
         dataset = ICDARDataset(

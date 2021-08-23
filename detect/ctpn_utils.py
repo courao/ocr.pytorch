@@ -395,7 +395,7 @@ class TextProposalConnectorOriented:
 
     def get_text_lines(self, text_proposals, scores, im_size):
         """
-        
+
         text_proposals:boxes
 
         """
@@ -443,7 +443,7 @@ class TextProposalConnectorOriented:
 
         text_recs = np.zeros((len(text_lines), 9), np.float)
         index = 0
-        
+
         for line in text_lines:
             b1 = line[6] - line[7] / 2  # 根据高度和文本行中心线，求取文本行上下两条线的b值
             b2 = line[6] + line[7] / 2
@@ -463,7 +463,7 @@ class TextProposalConnectorOriented:
             fTmp1 = fTmp0 * disY / width
             x = np.fabs(fTmp1 * disX / width)  # 做补偿
             y = np.fabs(fTmp1 * disY / width)
-            
+
             if line[5] < 0:
                 x1 -= x
                 y1 += y
@@ -474,7 +474,7 @@ class TextProposalConnectorOriented:
                 y2 += y
                 x3 -= x
                 y3 -= y
-            
+
             text_recs[index, 0] = x1
             text_recs[index, 1] = y1
             text_recs[index, 2] = x2
