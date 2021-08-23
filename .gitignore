@@ -40,3 +40,4 @@
 .vscode
 *.txt
 *.ckpt
+!requirements.txt

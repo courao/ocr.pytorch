@@ -1,4 +1,4 @@
-#-*- coding:utf-8 -*-
+# -*- coding:utf-8 -*-
 #'''
 # Created on 18-12-11 上午10:09
 #
@@ -8,15 +8,15 @@ import os
 from getpaths import getpath
 
 # base_dir = 'path to dataset base dir'
-base_dir = getpath()/'..'/'..'/'..'
+base_dir = getpath() / ".." / ".." / ".."
 
-icdar17_mlt_img_dir = base_dir/'train'
-icdar17_mlt_gt_dir = base_dir/'train_gt'
-num_workers = 0 # change to 2 when on GPU
-pretrained_weights = base_dir/'CTPN.pth'
+icdar17_mlt_img_dir = base_dir / "train"
+icdar17_mlt_gt_dir = base_dir / "train_gt"
+num_workers = 0  # change to 2 when on GPU
+pretrained_weights = base_dir / "CTPN.pth"
 batch_size = 1
 
-max_epochs = 2 # change to 30 when on GPU
+max_epochs = 2  # change to 30 when on GPU
 anchor_scale = 16
 IOU_NEGATIVE = 0.3
 IOU_POSITIVE = 0.7
@@ -29,4 +29,4 @@ RPN_TOTAL_NUM = 300
 IMAGE_MEAN = [123.68, 116.779, 103.939]
 OHEM = True
 
-checkpoints_dir = './checkpoints'
+checkpoints_dir = "./checkpoints"

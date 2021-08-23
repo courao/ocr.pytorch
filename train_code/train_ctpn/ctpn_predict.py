@@ -6,36 +6,47 @@
 #'''
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import cv2
 import numpy as np
 
 import torch
 import torch.nn.functional as F
-from detect.ctpn_model import CTPN_Model
-from detect.ctpn_utils import (
+from ctpn_utils import (
     gen_anchor,
     bbox_transfor_inv,
     clip_box,
     filter_bbox,
     nms,
     TextProposalConnectorOriented,
+    resize,
 )
-from detect.ctpn_utils import resize
-from detect import config
+
+import config
+
 
 prob_thresh = 0.5
 height = 720
-gpu = True
-if not torch.cuda.is_available():
-    gpu = False
-device = torch.device("cuda:0" if gpu else "cpu")
-weights = os.path.join(config.checkpoints_dir, "CTPN.pth")
 
-model = CTPN_Model()
-model.load_state_dict(torch.load(weights, map_location=device)["model_state_dict"])
-model.to(device)
-model.eval()
+
+def using_gpu():
+    # torch.cuda.is_available() fails on MAC
+    try:
+        torch.cuda.current_device()
+        torch.cuda.is_available()
+        # GPU is used!
+        return True
+    except AssertionError:
+        # GPU is not being used!
+        return False
+    except AttributeError:
+        # GPU is not being used!
+        return False
+    except RuntimeError:
+        # GPU is not being used!
+        return False
+
+
+device = torch.device("cuda:0" if using_gpu() else "cpu")
 
 
 def dis(image):
@@ -44,7 +55,11 @@ def dis(image):
     cv2.destroyAllWindows()
 
 
-def get_det_boxes(image, display=True, expand=True):
+def get_det_boxes(image, cls, regr, display=True, expand=True):
+    """
+    cls: confidence scores on bounding boxes
+    regr: bounding boxes
+    """
     image = resize(image, height=height)
     image_r = image.copy()
     image_c = image.copy()
@@ -54,9 +69,6 @@ def get_det_boxes(image, display=True, expand=True):
 
     with torch.no_grad():
         image = image.to(device)
-        # cls: confidence scores on bounding boxes
-        # regr: bounding boxes
-        cls, regr = model(image)
         cls_prob = F.softmax(cls, dim=-1).cpu().numpy()
         regr = regr.cpu().numpy()
         anchor = gen_anchor((int(h / 16), int(w / 16)), 16)
@@ -90,7 +102,6 @@ def get_det_boxes(image, display=True, expand=True):
                 text[idx][4] = max(text[idx][4] - 10, 0)
                 text[idx][6] = min(text[idx][6] + 10, w - 1)
 
-        # print(text)
         if display:
             blank = np.zeros(image_c.shape, dtype=np.uint8)
             for box in select_anchor:
@@ -118,11 +129,12 @@ def get_det_boxes(image, display=True, expand=True):
                 )
 
         #      text_rectangles, img_framed, image
-        return text,            image_c,    image_r
+        return text, image_c, image_r
 
 
 if __name__ == "__main__":
+    model = ""  # TODO: make this small example work
     img_path = "images/t1.png"
     image = cv2.imread(img_path)
-    text, image = get_det_boxes(image)
+    text, image = get_det_boxes(image, model)
     dis(image)

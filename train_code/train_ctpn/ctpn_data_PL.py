@@ -17,6 +17,7 @@ import pytorch_lightning as pl
 from torch.utils.data import random_split
 import math
 from torch.utils.data import DataLoader
+from PIL import Image
 
 
 def readxml(path):
@@ -94,11 +95,12 @@ class VOCDataset(Dataset):
 
 
 class ICDARDataset(Dataset):
-    def __init__(self, img_names, datadir, labelsdir):
+    def __init__(self, img_names, datadir, labelsdir, val_data=False):
         super().__init__()
         self.datadir = datadir
         self.img_names = img_names
         self.labelsdir = labelsdir
+        self.val_data = val_data
 
     def __len__(self):
         return len(self.img_names)
@@ -122,6 +124,7 @@ class ICDARDataset(Dataset):
 
     def box_transfer_v2(self, coor_lists, rescale_fac=1.0):
         gtboxes = []
+
         for coor_list in coor_lists:
             coors_x = [int(coor_list[2 * i]) for i in range(4)]
             coors_y = [int(coor_list[2 * i + 1]) for i in range(4)]
@@ -129,17 +132,20 @@ class ICDARDataset(Dataset):
             xmax = max(coors_x)
             ymin = min(coors_y)
             ymax = max(coors_y)
+
             if rescale_fac > 1.0:
                 xmin = int(xmin / rescale_fac)
                 xmax = int(xmax / rescale_fac)
                 ymin = int(ymin / rescale_fac)
                 ymax = int(ymax / rescale_fac)
+
             prev = xmin
             for i in range(xmin // 16 + 1, xmax // 16 + 1):
                 next = 16 * i - 0.5
                 gtboxes.append((prev, ymin, next, ymax))
                 prev = next
             gtboxes.append((prev, ymin, xmax, ymax))
+
         return np.array(gtboxes)
 
     def parse_gtfile(self, gt_path, rescale_fac=1.0):
@@ -168,7 +174,8 @@ class ICDARDataset(Dataset):
         img_name = self.img_names[idx]
         img_path = os.path.join(self.datadir, img_name)
         img = cv2.imread(img_path)
-        
+        img_copy = Image.open(img_path).convert("RGB")
+
         #####for read error, use default image#####
         if img is None:
             print(img_path)
@@ -185,6 +192,9 @@ class ICDARDataset(Dataset):
             h = int(h / rescale_fac)
             w = int(w / rescale_fac)
             img = cv2.resize(img, (w, h))
+        
+        if self.val_data:
+            img_copy = img_copy.resize((w, h))
 
         gt_path = os.path.join(self.labelsdir, "gt_" + img_name.split(".")[0] + ".txt")
         gtbox = self.parse_gtfile(gt_path, rescale_fac)
@@ -212,7 +222,12 @@ class ICDARDataset(Dataset):
         cls = torch.from_numpy(cls).float()
         regr = torch.from_numpy(regr).float()
 
-        return m_img, cls, regr
+        if self.val_data:
+            # include image while validating
+            # because transforms are irreversible, I think
+            return (w,h), img_path, m_img, cls, regr
+        else:
+            return m_img, cls, regr
 
 
 class ICDARDataModule(pl.LightningDataModule):
@@ -222,14 +237,19 @@ class ICDARDataModule(pl.LightningDataModule):
         labelsdir: annotations' directory
         """
         super().__init__()
-        
+
         self.config = config
         self.datadir = config.icdar17_mlt_img_dir
         self.labelsdir = config.icdar17_mlt_gt_dir
         self.train_val_split = train_val_split
-        self.img_names = [file_name for file_name in os.listdir(self.datadir) if (
-            (file_name != '.DS_Store') and (os.path.isfile(os.path.join(self.datadir,file_name)))
-        )]
+        self.img_names = [
+            file_name
+            for file_name in os.listdir(self.datadir)
+            if (
+                (file_name != ".DS_Store")
+                and (os.path.isfile(os.path.join(self.datadir, file_name)))
+            )
+        ]
         self.kwargs = kwargs
 
         # check if directory exists
@@ -237,7 +257,7 @@ class ICDARDataModule(pl.LightningDataModule):
             raise Exception("[ERROR] {} is not a directory".format(datadir))
         if not os.path.isdir(self.labelsdir):
             raise Exception("[ERROR] {} is not a directory".format(labelsdir))
-        
+
         # split data into train and val
         dataset_size = len(self.img_names)
         train_dataset_size = math.floor(dataset_size * 0.8)
@@ -245,33 +265,34 @@ class ICDARDataModule(pl.LightningDataModule):
         self.train_data, self.val_data = random_split(
             self.img_names, [train_dataset_size, val_dataset_size]
         )
-           
+    
+    def collate_fn(self, batch):
+        # very important, dataloader will throw errors
+        # expects tensors inside each batch to be the same size
+        return tuple(zip(*batch))
+
     def train_dataloader(self):
-        dataset = ICDARDataset(img_names=self.train_data,
-                               datadir=self.datadir,
-                               labelsdir=self.labelsdir)
-        return DataLoader(
-            dataset,
-            **self.kwargs
+        dataset = ICDARDataset(
+            img_names=self.train_data, datadir=self.datadir, labelsdir=self.labelsdir
         )
+        return DataLoader(dataset, **self.kwargs)
 
     def val_dataloader(self):
-        dataset = ICDARDataset(img_names=self.val_data,
-                               datadir=self.datadir,
-                               labelsdir=self.labelsdir)
-        return DataLoader(
-            dataset,
-            **self.kwargs
+        dataset = ICDARDataset(
+            img_names=self.val_data, datadir=self.datadir, labelsdir=self.labelsdir, val_data=True
         )
+        # return image data with dataloader since the transforms are irreversible
+        return DataLoader(dataset,
+                          shuffle=False,
+                          batch_size=self.config.batch_size,
+                          num_workers=self.config.num_workers,
+                          collate_fn=None)
 
     def test_dataloader(self):
-        dataset = ICDARDataset(img_names=self.val_data,
-                               datadir=self.datadir,
-                               labelsdir=self.labelsdir)
-        return DataLoader(
-            dataset,
-            **self.kwargs
+        dataset = ICDARDataset(
+            img_names=self.val_data, datadir=self.datadir, labelsdir=self.labelsdir
         )
+        return DataLoader(dataset, **self.kwargs)
 
 
 if __name__ == "__main__":
