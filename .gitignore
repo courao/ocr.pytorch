@@ -39,3 +39,4 @@
 **/lightning_logs
 .vscode
 *.txt
+*.ckpt

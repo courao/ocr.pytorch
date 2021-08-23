@@ -3,6 +3,7 @@ from crnn_data_PL import MyDataModule, resizeNormalize
 from crnn_model_PL import CRNN, InitializeWeights, LoadCheckpoint
 import config
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 def train():
@@ -23,7 +24,14 @@ def train():
         gpus=0,
         max_epochs=config.max_epochs,
         log_every_n_steps=1,
-        callbacks=[InitializeWeights(), LoadCheckpoint(config.pretrained_model)],
+        callbacks=[
+            InitializeWeights(),
+            LoadCheckpoint(config.pretrained_model),
+            ModelCheckpoint(
+                dirpath="/Users/mosaicchurchhtx/Desktop/ocr_pytorch/",
+                monitor="batch_loss",
+            ),
+        ],
     )
 
     trainer.fit(model, data)

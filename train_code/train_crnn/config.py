@@ -21,18 +21,18 @@ val_infofile = "path_to_test_infofile.txt"
 keep_ratio = True
 use_log = True
 pretrained_model = "/Users/mosaicchurchhtx/Desktop/CRNN-1010.pth"
-batchSize = 1  # make 80 if gpu
+batchSize = 9  # make 80 if gpu
 workers = 0  # make 10 if gpu
 adam = True
 
 
 experiment = None
 displayInterval = 500
-n_test_disp = 10
+n_test_disp = 9
 valInterval = 500
 saveInterval = 500
 adadelta = False
 random_sample = True
 
 
-max_epochs = 30
+max_epochs = 10

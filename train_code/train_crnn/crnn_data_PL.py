@@ -131,12 +131,15 @@ class MyDataset(Dataset):
     def __init__(
         self,
         info_filename,
+        config,
         train=True,
         transform=data_tf,
         target_transform=None,
-        remove_blank=True,
+        remove_blank=False,
+        val_step=False,
     ):
         super().__init__()
+        self.config = config
         self.transform = transform
         self.target_transform = target_transform
         self.info_filename = info_filename
@@ -168,6 +171,10 @@ class MyDataset(Dataset):
                     self.files.append(fname)
                     self.labels.append(label)
 
+        if val_step == True:
+            self.files = self.files[: config.batchSize]
+            self.labels = self.labels[: config.batchSize]
+
     def name(self):
         return "MyDataset"
 
@@ -197,7 +204,7 @@ class MyDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         return DataLoader(
-            MyDataset(**self.kwargs),
+            MyDataset(config=self.config, **self.kwargs),
             batch_size=self.config.batchSize,
             shuffle=True,
             num_workers=int(self.config.workers),
@@ -210,14 +217,15 @@ class MyDataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         return DataLoader(
-            MyDataset(**self.kwargs),
+            MyDataset(config=self.config, **self.kwargs),
             transform=resizeNormalize((config.imgW, config.imgH), is_test=True),
         )
 
     def val_dataloader(self):
         return DataLoader(
-            MyDataset(**self.kwargs),
+            MyDataset(config=self.config, val_step=True, **self.kwargs),
             batch_size=self.config.batchSize,
+            shuffle=False,
             num_workers=int(self.config.workers),
             collate_fn=alignCollate(
                 imgH=self.config.imgH,

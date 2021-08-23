@@ -5,7 +5,11 @@ from pytorch_lightning.callbacks import Callback
 from torch.nn import CTCLoss
 from torch.autograd import Variable
 from utils import strLabelConverter
+from torchvision import transforms
+from PIL import Image, ImageDraw
 from torch import optim
+import numpy as np
+import torchvision
 import torch
 import os
 
@@ -123,7 +127,8 @@ class CRNN(pl.LightningModule):
         )
 
         # encoder
-        self.converter = strLabelConverter(config.alphabet)
+        self.encoder = strLabelConverter(config.alphabet)
+        self.decoder = strLabelConverter(config.alphabet)
 
         # loss
         self.criterion = CTCLoss(reduction="sum", zero_infinity=True)
@@ -151,11 +156,10 @@ class CRNN(pl.LightningModule):
         return output
 
     def shared_step(self, batch, batch_idx):
-        data = batch
-        image, texts = data
+        image, texts = batch
         batch_size = image.size(0)
 
-        text, length = self.converter.encode(texts)
+        text, length = self.encoder.encode(texts)
 
         preds = self(image)  # seqLength x batchSize x alphabet_size
         preds_size = Variable(
@@ -180,8 +184,48 @@ class CRNN(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, batch_idx)
 
+    def get_text(self, preds):
+        _, preds = preds.max(2)
+        preds = preds.transpose(1, 0).contiguous().view(-1)
+
+        preds_size = Variable(torch.IntTensor([preds.size(0)]))
+        txt = self.decoder.decode(preds.data, preds_size.data, raw=False)
+        return txt
+
     def validation_step(self, batch, batch_idx):
-        return self.shared_step(batch, batch_idx)
+        image, texts = batch
+
+        # run prediction to get texts
+        preds = self(image)
+        txt = self.get_text(preds)
+
+        # visualize data
+        grid_A = []
+        markdown_text = []
+
+        to_image = transforms.ToTensor()
+
+        for i in range(self.config.batchSize):
+
+            _, y, x = image[i].shape
+            new_image = Image.new("L", (x, y))
+            # add image
+            I1 = ImageDraw.Draw(new_image)
+
+            # Add Text to an image
+            I1.text((0, 0), texts[i], fill=(255))
+
+            tensor = torch.stack([image[i], to_image(new_image)])
+            tensor = (tensor + 1) / 2
+            grid_A.append(tensor)
+
+            # add text
+            markdown_text.append(texts[i])
+
+        # combine images to one image
+        grid_A = torchvision.utils.make_grid(torch.cat(grid_A, 0), 2)
+
+        return preds
 
     def test_step(self, batch, batch_idx):
         return self.shared_step(batch, batch_idx)
