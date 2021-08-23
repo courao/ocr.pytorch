@@ -35,4 +35,3 @@ IMAGE_MEAN = [123.68, 116.779, 103.939]
 
 
 checkpoints_dir = "./checkpoints"
-outputs = r"./logs"

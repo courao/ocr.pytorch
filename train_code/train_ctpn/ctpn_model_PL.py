@@ -54,8 +54,6 @@ class RPN_CLS_Loss(nn.Module):
     def __init__(self):
         super().__init__()
         self.L_cls = nn.CrossEntropyLoss(reduction="none")
-        # self.L_regr = nn.SmoothL1Loss()
-        # self.L_refi = nn.SmoothL1Loss()
         self.pos_neg_ratio = 3
 
     def forward(self, input, target):
@@ -63,8 +61,6 @@ class RPN_CLS_Loss(nn.Module):
             cls_gt = target[0][0]
             num_pos = 0
             loss_pos_sum = 0
-
-            # print(len((cls_gt == 0).nonzero()),len((cls_gt == 1).nonzero()))
 
             if len((cls_gt == 1).nonzero()) != 0:  # avoid num of pos sample is 0
                 cls_pos = (cls_gt == 1).nonzero()[:, 0]
@@ -94,7 +90,6 @@ class RPN_CLS_Loss(nn.Module):
             loss = F.nll_loss(
                 F.log_softmax(cls_pred, dim=-1), cls_true
             )  # original is sparse_softmax_cross_entropy_with_logits
-            # loss = nn.BCEWithLogitsLoss()(cls_pred[:,0], cls_true.float())  # 18-12-8
             loss = (
                 torch.clamp(torch.mean(loss), 0, 10)
                 if loss.numel() > 0
@@ -217,7 +212,8 @@ class LossAndCheckpointCallback(Callback):
             torch.save(state, check_path)
         except BaseException as e:
             print(e)
-            print("fail to save to {}".format(check_path))
+            print("failed to save checkpoint to {}".format(check_path))
+        
         print("saving to {}".format(check_path))
     
     def on_epoch_start(self, trainer, pl_module):
@@ -226,6 +222,7 @@ class LossAndCheckpointCallback(Callback):
         pl_module.epoch_loss = 0
 
     def on_epoch_end(self, trainer:pl.Trainer, pl_module:pl.LightningModule):
+        epoch_size = pl_module.config.batch_size
         epoch_loss_cls = pl_module.epoch_loss_cls
         epoch_loss_regr = pl_module.epoch_loss_regr
         epoch_loss = pl_module.epoch_loss
@@ -245,7 +242,7 @@ class LossAndCheckpointCallback(Callback):
             dict_, on_step=False, on_epoch=True, prog_bar=True, logger=True
         )
 
-        # save checkpoint
+        # save checkpoint loss is better than before
         if (
             self.best_loss_cls > epoch_loss_cls
             or self.best_loss_regr > epoch_loss_regr
@@ -268,8 +265,9 @@ class LossAndCheckpointCallback(Callback):
 
 
 class CTPN_Model(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
+        self.config = config
         base_model = models.vgg16(pretrained=False)
         layers = list(base_model.features)[:-1]
         self.base_layers = nn.Sequential(*layers)  # block5_conv3 output
@@ -348,6 +346,7 @@ class CTPN_Model(pl.LightningModule):
         return self.shared_step(batch, batch_idx)
     
     def validation_step(self, batch, batch_idx):
+        # visualize bounding boxes and text
         return self.shared_step(batch, batch_idx)
     
     def test_step(self, batch, batch_idx):

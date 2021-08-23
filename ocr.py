@@ -3,7 +3,7 @@ from math import *
 import numpy as np
 from detect.ctpn_predict import get_det_boxes
 from recognize.crnn_recognizer import PytorchOcr
-from PIL import Image
+import numpy as np
 
 
 # load model once
@@ -23,10 +23,10 @@ def sort_box(box):
     return box
 
 
-def dumpRotateImage(img, degree, pt1, pt2, pt3, pt4) -> Image:
+def dumpRotateImage(img, degree, pt1, pt2, pt3, pt4) -> np.array:
     """
     turn an image by a number of degrees
-    return PIL.Image
+    return image as numpy array
     """
     height, width = img.shape[:2]
     heightNew = int(
@@ -107,7 +107,14 @@ def charRec(img, text_recs, adjust=False) -> dict:
     return results
 
 
-def ocr(image):
+def ocr(image: np.array):
+    """
+    Detection of text in 3 steps
+    1) use CTPN to detect large boxes of text
+    2) sort large boxes, converting to something CRNN would understand
+    3) use CRNN to detect text in those boxes
+    4) return images with text
+    """
     # detect large boxes of text (CTPN)
     text_recs, img_framed, image = get_det_boxes(image)
     # sort large boxes, converting to something CRNN would understand

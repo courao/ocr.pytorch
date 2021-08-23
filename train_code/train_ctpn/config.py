@@ -5,18 +5,18 @@
 # @Author: Greg Gao(laygin)
 #'''
 import os
+from getpaths import getpath
 
 # base_dir = 'path to dataset base dir'
-base_dir = './images'
-img_dir = os.path.join(base_dir, 'VOC2007_text_detection/JPEGImages')
-xml_dir = os.path.join(base_dir, 'VOC2007_text_detection/Annotations')
+base_dir = getpath()/'..'/'..'/'..'
 
-icdar17_mlt_img_dir = '/home/data2/egz/ICDAR2017_MLT/train/'
-icdar17_mlt_gt_dir = '/home/data2/egz/ICDAR2017_MLT/train_gt/'
-num_workers = 2
-pretrained_weights = 'checkpoints/v3_ctpn_ep22_0.3801_0.0971_0.4773.pth'
+icdar17_mlt_img_dir = base_dir/'train'
+icdar17_mlt_gt_dir = base_dir/'train_gt'
+num_workers = 0 # change to 2 when on GPU
+pretrained_weights = base_dir/'CTPN.pth'
+batch_size = 1
 
-max_epochs = 30
+max_epochs = 2 # change to 30 when on GPU
 anchor_scale = 16
 IOU_NEGATIVE = 0.3
 IOU_POSITIVE = 0.7
@@ -30,4 +30,3 @@ IMAGE_MEAN = [123.68, 116.779, 103.939]
 OHEM = True
 
 checkpoints_dir = './checkpoints'
-outputs = r'./logs'

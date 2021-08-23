@@ -167,8 +167,8 @@ class ICDARDataset(Dataset):
     def __getitem__(self, idx):
         img_name = self.img_names[idx]
         img_path = os.path.join(self.datadir, img_name)
-        # print(img_path)
         img = cv2.imread(img_path)
+        
         #####for read error, use default image#####
         if img is None:
             print(img_path)
@@ -179,7 +179,6 @@ class ICDARDataset(Dataset):
             img = cv2.imread(img_path)
 
         #####for read error, use default image#####
-
         h, w, c = img.shape
         rescale_fac = max(h, w) / 1600
         if rescale_fac > 1.0:
@@ -190,7 +189,7 @@ class ICDARDataset(Dataset):
         gt_path = os.path.join(self.labelsdir, "gt_" + img_name.split(".")[0] + ".txt")
         gtbox = self.parse_gtfile(gt_path, rescale_fac)
 
-        # clip image
+        # 33% chance of clipping image
         if np.random.randint(2) == 1:
             img = img[:, ::-1, :]
             newx1 = w - gtbox[:, 2] - 1
@@ -201,8 +200,7 @@ class ICDARDataset(Dataset):
         [cls, regr], base_anchors = cal_rpn(
             (h, w), (int(h / 16), int(w / 16)), 16, gtbox
         )
-        # debug_img = self.draw_boxes(img.copy(),cls,base_anchors,gtbox)
-        # cv2.imwrite('debug/{}'.format(img_name),debug_img)
+
         m_img = img - IMAGE_MEAN
 
         regr = np.hstack([cls.reshape(cls.shape[0], 1), regr])
@@ -218,16 +216,20 @@ class ICDARDataset(Dataset):
 
 
 class ICDARDataModule(pl.LightningDataModule):
-    def __init__(self, datadir, labelsdir, train_val_split=0.8, **kwargs):
+    def __init__(self, config, train_val_split=0.8, **kwargs):
         """
         datadir: image's directory
         labelsdir: annotations' directory
         """
         super().__init__()
-        self.datadir = datadir
-        self.labelsdir = labelsdir
+        
+        self.config = config
+        self.datadir = config.icdar17_mlt_img_dir
+        self.labelsdir = config.icdar17_mlt_gt_dir
         self.train_val_split = train_val_split
-        self.img_names = os.listdir(self.datadir)
+        self.img_names = [file_name for file_name in os.listdir(self.datadir) if (
+            (file_name != '.DS_Store') and (os.path.isfile(os.path.join(self.datadir,file_name)))
+        )]
         self.kwargs = kwargs
 
         # check if directory exists
