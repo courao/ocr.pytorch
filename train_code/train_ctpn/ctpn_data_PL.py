@@ -95,7 +95,7 @@ class VOCDataset(Dataset):
 
 
 class ICDARDataset(Dataset):
-    def __init__(self, img_names, datadir, labelsdir, val_data=False):
+    def __init__(self, img_names, datadir, labelsdir=None, val_data=False):
         super().__init__()
         self.datadir = datadir
         self.img_names = img_names

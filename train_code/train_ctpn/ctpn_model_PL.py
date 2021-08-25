@@ -9,16 +9,56 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
-import config
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from ctpn_predict import get_det_boxes
 from torch import optim
 from torchvision import transforms
 import torchvision
 from PIL import Image, ImageDraw
 import numpy as np
 import cv2
+
+
+try:
+    import config as CONFIG
+    from ctpn_utils import (
+        gen_anchor,
+        bbox_transfor_inv,
+        clip_box,
+        filter_bbox,
+        nms,
+        TextProposalConnectorOriented,
+        resize,
+    )
+except Exception:
+    from train_code.train_ctpn import config as CONFIG
+    from train_code.train_ctpn.ctpn_utils import (
+        gen_anchor,
+        bbox_transfor_inv,
+        clip_box,
+        filter_bbox,
+        nms,
+        TextProposalConnectorOriented,
+        resize,
+    )
+
+
+def using_gpu():
+    # torch.cuda.is_available() fails on MAC
+    try:
+        torch.cuda.current_device()
+        torch.cuda.is_available()
+        # GPU is used!
+        return True
+    except AssertionError:
+        # GPU is not being used!
+        return False
+    except AttributeError:
+        # GPU is not being used!
+        return False
+    except RuntimeError:
+        # GPU is not being used!
+        return False
 
 
 class RPN_REGR_Loss(nn.Module):
@@ -62,7 +102,7 @@ class RPN_CLS_Loss(nn.Module):
         self.pos_neg_ratio = 3
 
     def forward(self, input, target):
-        if config.OHEM:
+        if CONFIG.OHEM:
             cls_gt = target[0][0]
             num_pos = 0
             loss_pos_sum = 0
@@ -82,10 +122,10 @@ class RPN_CLS_Loss(nn.Module):
 
             loss_neg = self.L_cls(cls_pred_neg.view(-1, 2), gt_neg.view(-1))
             loss_neg_topK, _ = torch.topk(
-                loss_neg, min(len(loss_neg), config.RPN_TOTAL_NUM - num_pos)
+                loss_neg, min(len(loss_neg), CONFIG.RPN_TOTAL_NUM - num_pos)
             )
             loss_cls = loss_pos_sum + loss_neg_topK.sum()
-            loss_cls = loss_cls / config.RPN_TOTAL_NUM
+            loss_cls = loss_cls / CONFIG.RPN_TOTAL_NUM
             return loss_cls
         else:
             y_true = target[0][0]
@@ -150,27 +190,10 @@ class LoadCheckpoint(Callback):
         super().__init__()
         self.checkpoint_path = checkpoint_path
 
-    def using_gpu(self):
-        # torch.cuda.is_available() fails on MAC
-        try:
-            torch.cuda.current_device()
-            torch.cuda.is_available()
-            # GPU is used!
-            return True
-        except AssertionError:
-            # GPU is not being used!
-            return False
-        except AttributeError:
-            # GPU is not being used!
-            return False
-        except RuntimeError:
-            # GPU is not being used!
-            return False
-
     def on_pretrain_routine_start(self, trainer, pl_module):
         # load checkpoint if checkpoint is found
         if os.path.isfile(self.checkpoint_path):
-            device = torch.device("cuda:0" if self.using_gpu() else "cpu")
+            device = torch.device("cuda:0" if using_gpu() else "cpu")
             pl_module.load_state_dict(
                 torch.load(self.checkpoint_path, map_location=device)[
                     "model_state_dict"
@@ -214,7 +237,7 @@ class LossAndCheckpointCallback(Callback):
 
     def save_checkpoint(self, state, epoch, loss_cls, loss_regr, loss, ext="pth"):
         check_path = os.path.join(
-            config.checkpoints_dir,
+            CONFIG.checkpoints_dir,
             f"v3_ctpn_ep{epoch:02d}_"
             f"{loss_cls:.4f}_{loss_regr:.4f}_{loss:.4f}.{ext}",
         )
@@ -271,9 +294,12 @@ class LossAndCheckpointCallback(Callback):
 
 
 class CTPN_Model(pl.LightningModule):
-    def __init__(self, config):
+    def __init__(self, config=None):
         super().__init__()
-        self.config = config
+        if config == None:
+            self.config = CONFIG
+        else:
+            self.config = config
         base_model = models.vgg16(pretrained=False)
         layers = list(base_model.features)[:-1]
         self.base_layers = nn.Sequential(*layers)  # block5_conv3 output
@@ -348,6 +374,103 @@ class CTPN_Model(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, batch_idx)
+    
+    def load_checkpoint(self, checkpoint_path=None):
+        # grab checkpoint where it normally is
+        if checkpoint_path == None:
+            checkpoint_path = self.config.pretrained_weights
+
+        if os.path.isfile(checkpoint_path):
+            device = torch.device("cuda:0" if using_gpu() else "cpu")
+            self.load_state_dict(
+                torch.load(checkpoint_path, map_location=device)[
+                    "model_state_dict"
+                ]
+            )
+            self.to(device)
+            self.eval()
+        else:
+            print("checkpoint not found, skipping checkpoint load step")
+    
+    def get_det_boxes(self, image, cls=None, regr=None, display=True, expand=True):
+        """
+        cls: confidence scores on bounding boxes
+        regr: bounding boxes
+        """
+        if cls==None or regr==None:
+            image_copy = image.copy()
+            image = image - CONFIG.IMAGE_MEAN
+            image = torch.from_numpy(image.transpose([2, 0, 1])).float()
+            image = image.unsqueeze(0)
+            cls, regr = self(image)
+            image = image_copy
+        image_r = image.copy()
+        image_c = image.copy()
+        h, w = image.shape[:2]
+        image = image.astype(np.float32) - CONFIG.IMAGE_MEAN
+        image = torch.from_numpy(image.transpose(2, 0, 1)).unsqueeze(0).float()
+
+        cls_prob = F.softmax(cls, dim=-1).cpu().detach().numpy()
+        regr = regr.cpu().detach().numpy()
+        anchor = gen_anchor((int(h / 16), int(w / 16)), 16)
+        bbox = bbox_transfor_inv(anchor, regr)
+        bbox = clip_box(bbox, [h, w])
+
+        fg = np.where(cls_prob[0, :, 1] > CONFIG.prob_thresh)[0]
+        select_anchor = bbox[fg, :]
+        select_score = cls_prob[0, fg, 1]
+        select_anchor = select_anchor.astype(np.int32)
+        keep_index = filter_bbox(select_anchor, 16)
+
+        # nms: ?
+        select_anchor = select_anchor[keep_index]
+        select_score = select_score[keep_index]
+        select_score = np.reshape(select_score, (select_score.shape[0], 1))
+        nmsbox = np.hstack((select_anchor, select_score))
+        keep = nms(nmsbox, 0.3)
+        select_anchor = select_anchor[keep]
+        select_score = select_score[keep]
+
+        # text line
+        textConn = TextProposalConnectorOriented()
+        text = textConn.get_text_lines(select_anchor, select_score, [h, w])
+
+        # expand text
+        if expand:
+            for idx in range(len(text)):
+                text[idx][0] = max(text[idx][0] - 10, 0)
+                text[idx][2] = min(text[idx][2] + 10, w - 1)
+                text[idx][4] = max(text[idx][4] - 10, 0)
+                text[idx][6] = min(text[idx][6] + 10, w - 1)
+
+        if display:
+            blank = np.zeros(image_c.shape, dtype=np.uint8)
+            for box in select_anchor:
+                pt1 = (box[0], box[1])
+                pt2 = (box[2], box[3])
+                blank = cv2.rectangle(blank, pt1, pt2, (50, 0, 0), -1)
+            image_c = image_c + blank
+            image_c[image_c > 255] = 255
+            for i in text:
+                s = str(round(i[-1] * 100, 2)) + "%"
+                i = [int(j) for j in i]
+                cv2.line(image_c, (i[0], i[1]), (i[2], i[3]), (0, 0, 255), 2)
+                cv2.line(image_c, (i[0], i[1]), (i[4], i[5]), (0, 0, 255), 2)
+                cv2.line(image_c, (i[6], i[7]), (i[2], i[3]), (0, 0, 255), 2)
+                cv2.line(image_c, (i[4], i[5]), (i[6], i[7]), (0, 0, 255), 2)
+                cv2.putText(
+                    image_c,
+                    s,
+                    (i[0] + 13, i[1] + 13),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1,
+                    (255, 0, 0),
+                    2,
+                    cv2.LINE_AA,
+                )
+
+        #      text_rectangles, img_framed, image
+        return text, image_c, image_r
 
     def validation_step(self, batch, batch_idx):
         # visualize bounding boxes and text
@@ -366,7 +489,7 @@ class CTPN_Model(pl.LightningModule):
             w = w.item()
             h = h.item()
             img_copy = np.array(Image.open(img_path[0]).resize((w, h)))
-            text_recs, img_framed, images = get_det_boxes(img_copy, pred_cls, pred_regr)
+            text_recs, img_framed, images = self.get_det_boxes(img_copy, pred_cls, pred_regr)
 
             tensor = torch.stack([to_tensor(img_framed)])
             # tensor = (tensor + 1) / 2

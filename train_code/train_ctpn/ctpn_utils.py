@@ -6,7 +6,10 @@
 #'''
 import numpy as np
 import cv2
-from config import *
+try:
+    import config
+except Exception:
+    from train_code.train_ctpn import config
 
 
 def resize(image, width=None, height=None, inter=cv2.INTER_AREA):
@@ -191,9 +194,9 @@ def cal_rpn(imgsize, featuresize, scale, gtboxes):
     anchor_max_overlaps = overlaps[range(overlaps.shape[0]), anchor_argmax_overlaps]
 
     # IOU > IOU_POSITIVE
-    labels[anchor_max_overlaps > IOU_POSITIVE] = 1
+    labels[anchor_max_overlaps > config.IOU_POSITIVE] = 1
     # IOU <IOU_NEGATIVE
-    labels[anchor_max_overlaps < IOU_NEGATIVE] = 0
+    labels[anchor_max_overlaps < config.IOU_NEGATIVE] = 0
     # ensure that every GT box has at least one positive RPN region
     labels[gt_argmax_overlaps] = 1
 
@@ -209,15 +212,15 @@ def cal_rpn(imgsize, featuresize, scale, gtboxes):
     # subsample positive labels ,if greater than RPN_POSITIVE_NUM(default 128)
     fg_index = np.where(labels == 1)[0]
     # print(len(fg_index))
-    if len(fg_index) > RPN_POSITIVE_NUM:
+    if len(fg_index) > config.RPN_POSITIVE_NUM:
         labels[
-            np.random.choice(fg_index, len(fg_index) - RPN_POSITIVE_NUM, replace=False)
+            np.random.choice(fg_index, len(fg_index) - config.RPN_POSITIVE_NUM, replace=False)
         ] = -1
 
     # subsample negative labels
-    if not OHEM:
+    if not config.OHEM:
         bg_index = np.where(labels == 0)[0]
-        num_bg = RPN_TOTAL_NUM - np.sum(labels == 1)
+        num_bg = config.RPN_TOTAL_NUM - np.sum(labels == 1)
         if len(bg_index) > num_bg:
             # print('bgindex:',len(bg_index),'num_bg',num_bg)
             labels[

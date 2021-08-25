@@ -1,12 +1,14 @@
 import cv2
 from math import *
 import numpy as np
-from detect.ctpn_predict import get_det_boxes
-from recognize.crnn_recognizer import PytorchOcr
+from train_code.train_ctpn.ctpn_model_PL import CTPN_Model
+from train_code.train_crnn.crnn_recognizer import PytorchOcr
 import numpy as np
 
 
 # load model once
+ctpn_model = CTPN_Model()
+ctpn_model.load_checkpoint()
 recognizer = PytorchOcr()
 
 
@@ -116,7 +118,7 @@ def ocr(image: np.array):
     4) return images with text
     """
     # detect large boxes of text (CTPN)
-    text_recs, img_framed, image = get_det_boxes(image)
+    text_recs, img_framed, image = ctpn_model.get_det_boxes(image)
     # sort large boxes, converting to something CRNN would understand
     text_recs = sort_box(text_recs)
     # detect characters on those large boxes (CRNN)

@@ -1,7 +1,10 @@
-import keys
 from getpaths import getpath
+try:
+    from .keys import *
+except:
+    from keys import *
 
-alphabet = keys.alphabet_v2
+alphabet = alphabet_v2
 imgH = 32
 imgW = 800
 nc = 1

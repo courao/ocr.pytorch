@@ -11,7 +11,7 @@ import numpy as np
 
 import torch
 import torch.nn.functional as F
-from ctpn_utils import (
+from .ctpn_utils import (
     gen_anchor,
     bbox_transfor_inv,
     clip_box,
@@ -21,7 +21,10 @@ from ctpn_utils import (
     resize,
 )
 
-import config
+try:
+    import config
+except Exception:
+    from train_code.train_ctpn import config
 
 
 prob_thresh = 0.5
@@ -55,7 +58,7 @@ def dis(image):
     cv2.destroyAllWindows()
 
 
-def get_det_boxes(image, cls, regr, display=True, expand=True):
+def get_det_boxes(image, cls=None, regr=None, display=True, expand=True):
     """
     cls: confidence scores on bounding boxes
     regr: bounding boxes

@@ -5,10 +5,18 @@ import shutil
 import numpy as np
 from PIL import Image
 from glob import glob
+import cv2
 
 
 def single_pic_proc(image_file):
-    image = np.array(Image.open(image_file).convert("RGB"))
+    image = cv2.imread(image_file)
+    h, w, c = image.shape
+    rescale_fac = max(h, w) / 1600
+    if rescale_fac > 1.0:
+        h = int(h / rescale_fac)
+        w = int(w / rescale_fac)
+        image = cv2.resize(image, (w, h))
+
     result, image_framed = ocr(image)
     return result, image_framed
 

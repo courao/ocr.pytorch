@@ -8,8 +8,11 @@ import torchvision.transforms as transforms
 from torch.autograd import Variable
 import numpy as np
 import random
-from crnn import CRNN
-import config
+from .crnn_model_PL import CRNN
+try:
+    import config
+except Exception:
+    from train_code.train_crnn import config
 
 # copy from mydataset
 class resizeNormalize(object):
@@ -106,22 +109,14 @@ class strLabelConverter(object):
 
 # recognize api
 class PytorchOcr:
-    def __init__(self, model_path):
+    def __init__(self, model_path=config.pretrained_model):
         alphabet_unicode = config.alphabet_v2
         self.alphabet = "".join([chr(uni) for uni in alphabet_unicode])
         # print(len(self.alphabet))
         self.nclass = len(self.alphabet) + 1
-        self.model = CRNN(config.imgH, 1, self.nclass, 256)
+        self.model = CRNN(config, config.imgH, 1, self.nclass, 256)
         self.cuda = False
-        if torch.cuda.is_available():
-            self.cuda = True
-            self.model.cuda()
-            self.model.load_state_dict(
-                {k.replace("module.", ""): v for k, v in torch.load(model_path).items()}
-            )
-        else:
-            # self.model = nn.DataParallel(self.model)
-            self.model.load_state_dict(torch.load(model_path, map_location="cpu"))
+        self.model.load_state_dict(torch.load(model_path, map_location="cpu"))
         self.model.eval()
         self.converter = strLabelConverter(self.alphabet)
 
