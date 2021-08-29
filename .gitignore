@@ -41,3 +41,5 @@
 *.txt
 *.ckpt
 !requirements.txt
+checkpoints
+!checkpoints/README.md
