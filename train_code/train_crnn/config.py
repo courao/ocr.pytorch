@@ -1,4 +1,5 @@
 from getpaths import getpath
+
 try:
     from .keys import *
 except:
@@ -18,13 +19,13 @@ ngpu = 1
 saved_model_dir = "crnn_models"
 remove_blank = False
 
-desktop = getpath()/".."/".."/".."
+project_directory = getpath() / ".." / ".."
 saved_model_prefix = "CRNN-1010"
-train_infofile = [desktop/"ocr_pytorch/text_file.txt"]
+train_infofile = [project_directory / "ocr_pytorch/text_file.txt"]
 val_infofile = "path_to_test_infofile.txt"
 keep_ratio = True
 use_log = True
-pretrained_model = desktop/"CRNN-1010.pth"
+pretrained_model = project_directory / "CRNN-1010.pth"
 batchSize = 9  # make 80 if gpu
 workers = 0  # make 10 if gpu
 adam = True

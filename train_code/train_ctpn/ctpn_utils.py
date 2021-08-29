@@ -6,6 +6,7 @@
 #'''
 import numpy as np
 import cv2
+
 try:
     import config
 except Exception:
@@ -214,7 +215,9 @@ def cal_rpn(imgsize, featuresize, scale, gtboxes):
     # print(len(fg_index))
     if len(fg_index) > config.RPN_POSITIVE_NUM:
         labels[
-            np.random.choice(fg_index, len(fg_index) - config.RPN_POSITIVE_NUM, replace=False)
+            np.random.choice(
+                fg_index, len(fg_index) - config.RPN_POSITIVE_NUM, replace=False
+            )
         ] = -1
 
     # subsample negative labels

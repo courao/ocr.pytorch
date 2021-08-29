@@ -9,6 +9,7 @@ import numpy as np
 # load model once
 ctpn_model = CTPN_Model()
 ctpn_model.load_checkpoint()
+
 recognizer = PytorchOcr()
 
 

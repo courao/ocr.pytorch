@@ -374,7 +374,7 @@ class CTPN_Model(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, batch_idx)
-    
+
     def load_checkpoint(self, checkpoint_path=None):
         # grab checkpoint where it normally is
         if checkpoint_path == None:
@@ -383,21 +383,19 @@ class CTPN_Model(pl.LightningModule):
         if os.path.isfile(checkpoint_path):
             device = torch.device("cuda:0" if using_gpu() else "cpu")
             self.load_state_dict(
-                torch.load(checkpoint_path, map_location=device)[
-                    "model_state_dict"
-                ]
+                torch.load(checkpoint_path, map_location=device)["model_state_dict"]
             )
             self.to(device)
             self.eval()
         else:
             print("checkpoint not found, skipping checkpoint load step")
-    
+
     def get_det_boxes(self, image, cls=None, regr=None, display=True, expand=True):
         """
         cls: confidence scores on bounding boxes
         regr: bounding boxes
         """
-        if cls==None or regr==None:
+        if cls == None or regr == None:
             image_copy = image.copy()
             image = image - CONFIG.IMAGE_MEAN
             image = torch.from_numpy(image.transpose([2, 0, 1])).float()
@@ -489,7 +487,9 @@ class CTPN_Model(pl.LightningModule):
             w = w.item()
             h = h.item()
             img_copy = np.array(Image.open(img_path[0]).resize((w, h)))
-            text_recs, img_framed, images = self.get_det_boxes(img_copy, pred_cls, pred_regr)
+            text_recs, img_framed, images = self.get_det_boxes(
+                img_copy, pred_cls, pred_regr
+            )
 
             tensor = torch.stack([to_tensor(img_framed)])
             # tensor = (tensor + 1) / 2

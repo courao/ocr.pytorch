@@ -8,12 +8,12 @@ import os
 from getpaths import getpath
 
 # base_dir = 'path to dataset base dir'
-base_dir = getpath() / ".." / ".." / ".."
+base_dir = getpath() / ".." / ".."
 
 icdar17_mlt_img_dir = base_dir / "train"
 icdar17_mlt_gt_dir = base_dir / "train_gt"
 num_workers = 0  # change to 2 when on GPU
-pretrained_weights = base_dir / "CTPN.pth"
+pretrained_weights = base_dir / "checkpoints" / "CTPN.pth"
 batch_size = 1
 
 max_epochs = 2  # change to 30 when on GPU

@@ -9,6 +9,7 @@ from torch.autograd import Variable
 import numpy as np
 import random
 from .crnn_model_PL import CRNN
+
 try:
     import config
 except Exception:

@@ -29,7 +29,7 @@ def train():
     )
 
     # load checkpoint if it exists
-    desktop = getpath()/'..'/'..'/'..'
+    desktop = getpath() / ".." / ".." / ".."
     trainer = pl.Trainer(
         gpus=0,
         max_epochs=config.max_epochs,
@@ -38,7 +38,7 @@ def train():
             InitializeWeights(),
             LoadCheckpoint(config.pretrained_model),
             ModelCheckpoint(
-                dirpath=str(desktop/"ocr_pytorch"),
+                dirpath=str(desktop / "ocr_pytorch"),
                 monitor="batch_loss",
             ),
         ],
