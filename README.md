@@ -1,6 +1,6 @@
-## ocr.pytorch
+## lightning_applied_text_detection
 > Applying pytorch-lightning to CTPN and CRNN
-Code heavily borrowed from [courao](https://github.com/courao/ocr.pytorch)
+> Code heavily borrowed from [courao](https://github.com/courao/ocr.pytorch)
 
 Text detection is based CTPN and text recognition is based CRNN.  
 More detection and recognition methods will be supported!
@@ -25,9 +25,7 @@ Pull requests welcome!
 
 ### Detection
 Detection is based on [CTPN](https://arxiv.org/abs/1609.03605), some codes are borrowed from 
-[pytorch_ctpn](https://github.com/opconty/pytorch_ctpn), several detection results: 
-![detect1](test_result/t1.jpg)
-![detect2](test_result/t2.jpg)
+[pytorch_ctpn](https://github.com/opconty/pytorch_ctpn)
 
 ### Recognition
 Recognition is based on [CRNN](http://arxiv.org/abs/1507.05717), some codes are borrowed from
