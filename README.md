@@ -1,4 +1,4 @@
-## lightning_applied_text_detection
+## lightning_text_detection
 > Applying pytorch-lightning to CTPN and CRNN
 > Code heavily borrowed from [courao](https://github.com/courao/ocr.pytorch)
 
