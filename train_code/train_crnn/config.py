@@ -1,11 +1,10 @@
 from pathed import filedir
+import pickle as pkl
 
-try:
-    from .keys import *
-except:
-    from keys import *
+alphabet_list = pkl.load(open(filedir / "alphabet.pkl", "rb"))
+alphabet = [ord(ch) for ch in alphabet_list]
 
-alphabet = alphabet_v2
+alphabet = alphabet
 imgH = 32
 imgW = 800
 nc = 1

@@ -1,4 +1,5 @@
 from pytorch_lightning.callbacks import Callback
+from pathed import filedir, importfile
 from collections import OrderedDict
 from torch.autograd import Variable
 from torchvision import transforms
@@ -12,10 +13,7 @@ import torchvision
 import torch
 import os
 
-try:
-    from .utils import strLabelConverter
-except:
-    from utils import strLabelConverter
+strLabelConverter = importfile(filedir/'utils.py').strLabelConverter
 
 
 class BidirectionalLSTM(nn.Module):

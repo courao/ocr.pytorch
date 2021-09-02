@@ -146,8 +146,8 @@ class MyDataset(Dataset):
         if isinstance(self.info_filename, str):
             self.info_filename = [self.info_filename]
         self.train = train
-        self.files = list()
-        self.labels = list()
+        self.files = []
+        self.labels = []
         for info_name in self.info_filename:
 
             with open(info_name) as f:
