@@ -1,7 +1,7 @@
-from getpaths import getpath
+from pathed import Path
 import os
 
-file_dir = getpath("/Users/mosaicchurchhtx/Desktop/1", custom=True)
+file_dir = Path("/Users/mosaicchurchhtx/Desktop/1", custom=True)
 
 # get valid files
 file_list = [

@@ -20,7 +20,7 @@ Pull requests welcome!
 - opencv-4.5.2.52
 - numpy-1.21.1
 - Pillow-8.2.0
-- getpaths-0.0.34
+- Paths-0.0.34
 
 
 ### Detection

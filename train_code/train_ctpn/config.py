@@ -5,10 +5,11 @@
 # @Author: Greg Gao(laygin)
 #'''
 import os
-from getpaths import getpath
+from pathed import filedir
 
 # base_dir = 'path to dataset base dir'
-base_dir = getpath() / ".." / ".."
+base_dir = filedir / ".." / ".."
+
 
 icdar17_mlt_img_dir = base_dir / "train"
 icdar17_mlt_gt_dir = base_dir / "train_gt"

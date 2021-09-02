@@ -1,4 +1,4 @@
-from getpaths import getpath
+from pathed import filedir
 
 try:
     from .keys import *
@@ -19,7 +19,7 @@ ngpu = 1
 saved_model_dir = "crnn_models"
 remove_blank = False
 
-project_directory = getpath() / ".." / ".."
+project_directory = filedir / ".." / ".."
 saved_model_prefix = "CRNN-1010"
 train_infofile = [project_directory / "ocr_pytorch/text_file.txt"]
 val_infofile = "path_to_test_infofile.txt"

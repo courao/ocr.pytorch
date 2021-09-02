@@ -13,7 +13,7 @@ from crnn_model_PL import CRNN, InitializeWeights, LoadCheckpoint
 import config
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-from getpaths import getpath
+from pathed import filedir
 
 
 def train():
@@ -29,7 +29,7 @@ def train():
     )
 
     # load checkpoint if it exists
-    desktop = getpath() / ".." / ".." / ".."
+    desktop = filedir / ".." / ".." / ".."
     trainer = pl.Trainer(
         gpus=0,
         max_epochs=config.max_epochs,
