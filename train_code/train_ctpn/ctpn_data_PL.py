@@ -20,80 +20,6 @@ from torch.utils.data import DataLoader
 from PIL import Image
 
 
-def readxml(path):
-    gtboxes = []
-    imgfile = ""
-    xml = ET.parse(path)
-    for elem in xml.iter():
-        if "filename" in elem.tag:
-            imgfile = elem.text
-        if "object" in elem.tag:
-            for attr in list(elem):
-                if "bndbox" in attr.tag:
-                    xmin = int(round(float(attr.find("xmin").text)))
-                    ymin = int(round(float(attr.find("ymin").text)))
-                    xmax = int(round(float(attr.find("xmax").text)))
-                    ymax = int(round(float(attr.find("ymax").text)))
-
-                    gtboxes.append((xmin, ymin, xmax, ymax))
-
-    return np.array(gtboxes), imgfile
-
-
-# for ctpn text detection
-class VOCDataset(Dataset):
-    def __init__(self, datadir, labelsdir):
-        """
-
-        :param txtfile: image name list text file
-        :param datadir: image's directory
-        :param labelsdir: annotations' directory
-        """
-        if not os.path.isdir(datadir):
-            raise Exception("[ERROR] {} is not a directory".format(datadir))
-        if not os.path.isdir(labelsdir):
-            raise Exception("[ERROR] {} is not a directory".format(labelsdir))
-
-        self.datadir = datadir
-        self.img_names = os.listdir(self.datadir)
-        self.labelsdir = labelsdir
-
-    def __len__(self):
-        return len(self.img_names)
-
-    def __getitem__(self, idx):
-        img_name = self.img_names[idx]
-        img_path = os.path.join(self.datadir, img_name)
-        print(img_path)
-        xml_path = os.path.join(self.labelsdir, img_name.replace(".jpg", ".xml"))
-        gtbox, _ = readxml(xml_path)
-        img = cv2.imread(img_path)
-        h, w, c = img.shape
-
-        # clip image
-        if np.random.randint(2) == 1:
-            img = img[:, ::-1, :]
-            newx1 = w - gtbox[:, 2] - 1
-            newx2 = w - gtbox[:, 0] - 1
-            gtbox[:, 0] = newx1
-            gtbox[:, 2] = newx2
-
-        [cls, regr], _ = cal_rpn((h, w), (int(h / 16), int(w / 16)), 16, gtbox)
-
-        m_img = img - IMAGE_MEAN
-
-        regr = np.hstack([cls.reshape(cls.shape[0], 1), regr])
-
-        cls = np.expand_dims(cls, axis=0)
-
-        # transform to torch tensor
-        m_img = torch.from_numpy(m_img.transpose([2, 0, 1])).float()
-        cls = torch.from_numpy(cls).float()
-        regr = torch.from_numpy(regr).float()
-
-        return m_img, cls, regr
-
-
 class ICDARDataset(Dataset):
     def __init__(self, img_names, datadir, labelsdir=None, val_data=False):
         super().__init__()
@@ -123,6 +49,40 @@ class ICDARDataset(Dataset):
         return np.array(gtboxes)
 
     def box_transfer_v2(self, coor_lists, rescale_fac=1.0):
+        """
+        This function is used to transfer the coordinates of bboxes from one image to another.
+        The input coor_lists is a list of coordinates of bboxes in the source image, which are represented by a list of 4 numbers for each bbox, namely xmin, ymin, xmax, ymax.
+        The output gtboxes is a numpy array of coordinates of bboxes in the target image, which are represented by a list of 4 numbers for each bbox, namely xmin, ymin, xmax, ymax.
+        The parameter rescale_fac is used to rescale the coordinates of bboxes in the source image before transferring them to the target image.
+
+        Parameters
+        ----------
+        coor_lists : list
+            A list of coordinates of bboxes in the source image.
+            Each element in the list is a list of 4 numbers for a bbox, namely xmin, ymin, xmax, ymax.
+        rescale_fac : float
+            The factor used to rescale the coordinates of bboxes in the source image before transferring them to the target image.
+
+        Returns
+        -------
+        gtboxes : numpy array
+            A numpy array of coordinates of bboxes in the target image.
+            Each row in the numpy array represents a bbox, which is represented by a list of 4 numbers for a bbox, namely xmin, ymin, xmax, ymax.
+
+        Examples
+        --------
+        >>> coor_lists = [[10, 20, 30, 40], [50, 60, 70, 80]]
+        >>> gtboxes = box_transfer_v2(coor_lists)
+        >>> print(gtboxes)
+        [[10 20 30 40]
+        [50 60 70 80]]
+
+        >>> coor_lists = [[10, 20, 30, 40], [50, 60, 70, 80]]
+        >>> gtboxes = box_transfer_v2(coor_lists, rescale_fac=2)
+        >>> print(gtboxes)
+        [[ 5 10 15 20]
+        [25 30 35 40]]
+        """
         gtboxes = []
 
         for coor_list in coor_lists:
@@ -171,6 +131,19 @@ class ICDARDataset(Dataset):
         return img
 
     def __getitem__(self, idx):
+        """
+        Arguments:
+            self: self class object
+            idx: index of image in the dataset
+
+        Returns:
+            tuple: (image, target) where target is a dictionary containing the following fields
+                - boxes (FloatTensor[N, 4]): the coordinates of the N bounding boxes in [x0, y0, x1, y1] format, ranging from 0 to W and 0 to H
+                - labels (Int64Tensor[N]): the label for each bounding box. 0 represents always the background class.
+                - image_id (Int64Tensor[1]): an image identifier. It should be unique between all the images in the dataset, and is used during evaluation
+                - area (Tensor[N]): The area of the bounding box.
+                - iscrowd (UInt8Tensor[N]): instances with iscrowd=True will be ignored during evaluation.
+        """
         img_name = self.img_names[idx]
         img_path = os.path.join(self.datadir, img_name)
         img = cv2.imread(img_path)

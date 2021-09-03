@@ -1,9 +1,5 @@
 # -*- coding:utf-8 -*-
-#'''
-# Created on 18-12-11 上午10:05
-#
-# @Author: Greg Gao(laygin)
-#'''
+
 import numpy as np
 import cv2
 
@@ -14,6 +10,23 @@ except Exception:
 
 
 def resize(image, width=None, height=None, inter=cv2.INTER_AREA):
+    """
+    This function resizes the image to the specified width and height.
+    It also provides the interpolation method.
+
+    The interpolation method is a way of generating additional pixels in between two pixels of known values.
+    The default interpolation method is cv2.INTER_AREA which is used for shrinking an image.
+    The interpolation methods are:
+        cv2.INTER_NEAREST - a nearest-neighbor interpolation
+        cv2.INTER_LINEAR - a bilinear interpolation (used by default)
+        cv2.INTER_AREA - resampling using pixel area relation. It may be a preferred method
+                         for image decimation, as it gives moire’-free results. But when the
+                         image is zoomed, it is similar to the INTER_NEAREST method.
+        cv2.INTER_CUBIC - a bicubic interpolation over 4x4 pixel neighborhood
+        cv2.INTER_LANCZOS4 - a Lanczos interpolation over 8x8 pixel neighborhood
+
+    The function returns the resized image.
+    """
     # initialize the dimensions of the image to be resized and
     # grab the image size
     dim = None
@@ -38,16 +51,18 @@ def resize(image, width=None, height=None, inter=cv2.INTER_AREA):
         r = width / float(w)
         dim = (width, int(h * r))
 
-    # resize the image
-    # resized = cv2.resize(image, dim, interpolation=inter)
-
-    # return the resized image
     return image
 
 
 def gen_anchor(featuresize, scale):
     """
-    gen base anchor from feature map [HXW][9][4]
+    Generate 9 anchor boxes centered on each pixel of the feature map.
+    The size of the anchor at each pixel location is the base size times the scale factor.
+    The scale factor is a list of 10 values, one per feature map location.
+
+    Generate anchor (reference) windows by enumerating aspect ratios X
+    scales wrt a reference (0, 0, 15, 15) window.
+
     reshape  [HXW][9][4] to [HXWX9][4]
     """
     heights = [11, 16, 23, 33, 48, 68, 97, 139, 198, 283]
@@ -82,8 +97,23 @@ def gen_anchor(featuresize, scale):
 
 def cal_iou(box1, box1_area, boxes2, boxes2_area):
     """
-    box1 [x1,y1,x2,y2]
-    boxes2 [Msample,x1,y1,x2,y2]
+    Calculate the Intersection over Union (IoU) of two bounding boxes.
+
+    Parameters
+    ----------
+    box1 : numpy.ndarray
+        An N x 4 numpy array, each row is [x1, y1, x2, y2]
+    box2 : numpy.ndarray
+        An N x 4 numpy array, each row is [x1, y1, x2, y2]
+    box1_area : float
+        The area of 'box1'
+    box2_area : float
+        The area of 'box2'
+
+    Returns
+    -------
+    numpy.ndarray
+        An N x M numpy array containing the IoU values.
     """
     x1 = np.maximum(box1[0], boxes2[:, 0])
     x2 = np.minimum(box1[2], boxes2[:, 2])
@@ -97,9 +127,17 @@ def cal_iou(box1, box1_area, boxes2, boxes2_area):
 
 def cal_overlaps(boxes1, boxes2):
     """
+    Calculate the overlaps between boxes1 and boxes2.
+
     boxes1 [Nsample,x1,y1,x2,y2]  anchor
     boxes2 [Msample,x1,y1,x2,y2]  grouth-box
 
+    Arguments:
+        boxes1 (ndarray): Either :math:`(N, 4)` or :math:`(N, 5)` depending on the value of `clip_boxes`.
+        boxes2 (ndarray): Either :math:`(M, 4)` or :math:`(M, 5)` depending on the value of `clip_boxes`.
+
+    Returns:
+        ndarray: :math:`(N, M)` overlap between boxes1 and boxes2.
     """
     area1 = (boxes1[:, 0] - boxes1[:, 2]) * (boxes1[:, 1] - boxes1[:, 3])
     area2 = (boxes2[:, 0] - boxes2[:, 2]) * (boxes2[:, 1] - boxes2[:, 3])
@@ -115,8 +153,12 @@ def cal_overlaps(boxes1, boxes2):
 
 def bbox_transfrom(anchors, gtboxes):
     """
-    compute relative predicted vertical coordinates Vc ,Vh
-       with respect to the bounding box location of an anchor
+    Args:
+        anchors (ndarray): ndarray of shape (N, 4) for anchor boxes with (x1, y1, x2, y2) format.
+        gtboxes (ndarray): ndarray of shape (N, 4) for ground truth boxes with (x1, y1, x2, y2) format.
+
+    Returns:
+        ndarray: Regression targets of shape (N, 2). Each row is (Vc, Vh).
     """
     regr = np.zeros((anchors.shape[0], 2))
     Cy = (gtboxes[:, 1] + gtboxes[:, 3]) * 0.5
@@ -132,7 +174,14 @@ def bbox_transfrom(anchors, gtboxes):
 
 def bbox_transfor_inv(anchor, regr):
     """
-    return predict bbox
+    Args:
+        anchor (ndarray): An array of shape (N x 4) representing anchor boxes
+            in (x1, y1, x2, y2) format.
+        regr (ndarray): An array of shape (N x 2 x 4) representing predicted
+            regression terms for anchors.
+
+    Returns:
+        ndarray: N predicted bounding boxes in (x1, y1, x2, y2) format.
     """
 
     Cya = (anchor[:, 1] + anchor[:, 3]) * 0.5
@@ -155,6 +204,12 @@ def bbox_transfor_inv(anchor, regr):
 
 
 def clip_box(bbox, im_shape):
+    """
+    Clip boxes to image boundaries.
+    :param bbox: numpy array of shape (N, 4)
+    :param im_shape: numpy array of shape (2, )
+    :return: numpy array of shape (N, 4)
+    """
     # x1 >= 0
     bbox[:, 0] = np.maximum(np.minimum(bbox[:, 0], im_shape[1] - 1), 0)
     # y1 >= 0
@@ -168,6 +223,10 @@ def clip_box(bbox, im_shape):
 
 
 def filter_bbox(bbox, minsize):
+    """
+    Filters out bounding boxes that are too small.
+    Returns the indices of the bounding boxes that pass the filtering.
+    """
     ws = bbox[:, 2] - bbox[:, 0] + 1
     hs = bbox[:, 3] - bbox[:, 1] + 1
     keep = np.where((ws >= minsize) & (hs >= minsize))[0]
@@ -175,6 +234,18 @@ def filter_bbox(bbox, minsize):
 
 
 def cal_rpn(imgsize, featuresize, scale, gtboxes):
+    """
+    Args:
+        imgsize: [h, w]
+        featuresize: the size of each output feature map, e.g. [19, 19]
+        scale: the scale factor of the base anchor to the feature map, e.g. [32, 32]
+        gtboxes: ground truth boxes in the image, shape of [N, 4].
+        stride: the stride of the output feature map.
+
+    Returns:
+        labels: label for each anchor, shape of [N, ], -1 for ignore, 0 for background, 1 for object
+        bbox_targets: bbox regrssion target for each anchor, shape of [N, 4]
+    """
     imgh, imgw = imgsize
 
     # gen base anchor
@@ -236,6 +307,19 @@ def cal_rpn(imgsize, featuresize, scale, gtboxes):
 
 
 def nms(dets, thresh):
+    """
+    Parameters
+    ----------
+    dets : ndarray
+        each row is ['xmin', 'ymin', 'xmax', 'ymax', 'score']
+    thresh : float
+        IOU threshold
+    ----------
+    Returns
+    ----------
+    keep : ndarray
+        indexes to keep
+    """
     x1 = dets[:, 0]
     y1 = dets[:, 1]
     x2 = dets[:, 2]
@@ -266,6 +350,53 @@ def nms(dets, thresh):
 
 # for predict
 class Graph:
+    """
+    Parameters:
+        graph (numpy array): A numpy array containing
+            the adjacency matrix of the graph
+
+    Returns:
+        sub_graphs (list): A list of lists, where each
+            sub-list contains nodes that are connected
+            to each other.
+
+    Raises:
+        TypeError: If graph is not of type numpy.ndarray.
+
+    Examples:
+        >>> g = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
+        >>> print(sub_graphs_connected(g))
+        [[0, 1], [2]]
+
+        >>> g = np.array([[0, 1], [1, 0]])
+        >>> print(sub_graphs_connected(g))
+        [[0], [1]]
+
+        >>> g = np.array([[1, 0], [1, 1]])
+        >>> print(sub_graphs_connected(g))
+        [[0], [1]]
+
+        >>> g = np.array([[1, 1], [1, 1]])
+        >>> print(sub_graphs_connected(g))
+        [[0, 1]]
+
+        >>> g = np.array([[0, 0], [0, 0]])
+        >>> print(sub_graphs_connected(g))
+        []
+
+        >>> g = np.array([[1, 0], [0, 1]])
+        >>> print(sub_graphs_connected(g))
+        [[0], [1]]
+
+        >>> g = np.array([[1, 1], [0, 0]])
+        >>> print(sub_graphs_connected(g))
+        [[0], [1]]
+
+        >>> g = np.array([[1, 1], [1, 0]])
+        >>> print(sub_graphs_connected(g))
+        [[0], [1]]
+    """
+
     def __init__(self, graph):
         self.graph = graph
 
@@ -297,10 +428,39 @@ class TextLineCfg:
 
 class TextProposalGraphBuilder:
     """
-    Build Text proposals into a graph.
+    text_proposals:
+    Nx4 numpy array
+    N is the number of boxes
+    Each row is [x1, y1, x2, y2]
+
+    scores:
+        N numpy array
+        N is the number of boxes
+        Each element is a score for each box
+
+    im_size:
+        2-tuple, (width, height)
+        width and height are integers indicating the size of the image.
+
+    boxes_table:
+        A list containing N lists.
+        Each list is a list of indices of text proposals that belong to the same horizontal line.
+        The first element in each list is the index of the horizontal line.
+        The rest of the elements are the indices of the text proposals that belong to this line.
+
+    heights:
+        N numpy array.
+        Each element indicates the height of each box.
     """
 
     def get_successions(self, index):
+        """
+        1. Get the bounding box of the text line from the text_proposals.
+        2. Get all the bounding boxes in the same row as the bounding box of the text line.
+        3. For each bounding box in the same row, check if it's a successor or not.
+        4. If it is a successor, add it to the list of successors.
+        5. Return a list of successors.
+        """
         box = self.text_proposals[index]
         results = []
         for left in range(
@@ -316,6 +476,15 @@ class TextProposalGraphBuilder:
         return results
 
     def get_precursors(self, index):
+        """
+        Inputs:
+        index: The box to look for a precursor of.
+
+        Returns:
+        A list of indices corresponding to the previous boxes which are connected
+        to the current box. In other words, these previous boxes refer to lines that
+        overlap with the current line.
+        """
         box = self.text_proposals[index]
         results = []
         for left in range(
@@ -332,12 +501,28 @@ class TextProposalGraphBuilder:
         return results
 
     def is_succession_node(self, index, succession_index):
+        """
+        Returns whether one node is the successor of the other
+
+        Parameters:
+            index: int, the index of the node
+           succession_index: int, the index of the possible successor node
+
+        Returns:
+            is_succession_node: bool, whether one node is the successor of the other
+        """
         precursors = self.get_precursors(succession_index)
         if self.scores[index] >= np.max(self.scores[precursors]):
             return True
         return False
 
     def meet_v_iou(self, index1, index2):
+        """
+        If both bounding boxes are present in the ground truth text line bounding box list
+        and the overlap is larger than a minimum threshold AND
+        their size similarity is smaller than a given value, return True.
+        """
+
         def overlaps_v(index1, index2):
             h1 = self.heights[index1]
             h2 = self.heights[index2]
@@ -356,6 +541,26 @@ class TextProposalGraphBuilder:
         )
 
     def build_graph(self, text_proposals, scores, im_size):
+        """
+        # Inputs:
+        - `text_proposals`: a list of text proposals.
+        - `scores`: a list of text proposals' scores.
+        - `im_size`: a tuple of (image_height, image_width).
+
+        # Outputs:
+        - `graph`: a `Graph` instance, holding a graph representation of text proposals.
+
+        # Notes:
+        - This function builds a graph from the set of given text proposals.
+        - Each node in the graph corresponds to a text proposal.
+        - Each text proposal has a set of successors.
+        - Each node is a `Succession` instance, which holds the following data:
+            - `index`: the index of the text proposal.
+            - `score`: the score of the text proposal.
+            - `successions`: a list of indexes of successor text proposals.
+            - `precursors`: a list of indexes of precursor text proposals.
+            - `mask_index`: the index of the mask that the text proposal belongs to.
+        """
         self.text_proposals = text_proposals
         self.scores = scores
         self.im_size = im_size
@@ -402,8 +607,10 @@ class TextProposalConnectorOriented:
 
     def get_text_lines(self, text_proposals, scores, im_size):
         """
-        text_proposals:boxes
-
+        1. First, it finds the text proposals that are connected into text lines.
+        2. Then, it finds the average value of the center of the text line and the height of the text line.
+        3. Finally, it fits a straight line according to the center and height of the text line,
+           and then calculates the b value of the straight line.
         """
         # tp=text proposal
         # First of all, it is to build a picture, and get the small boxes constituted by the text line

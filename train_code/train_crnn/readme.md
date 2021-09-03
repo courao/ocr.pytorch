@@ -14,8 +14,3 @@ config.val_infofile = 'path_to_test_infofile.txt'
 
 Then if you want to use warp-ctc as loss function, run 
 >python3 train_warp_ctc.py
-
-or if you want to use pytorch-ctc as loss function, run
->python3 train_pytorch_ctc.py
-
-

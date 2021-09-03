@@ -17,7 +17,6 @@ import math
 
 
 def rename(filepath):
-    # print(f'rename {filepath} to 00X')
     filelist = os.listdir(filepath)
     filelist.sort()
     i = 1
@@ -32,6 +31,15 @@ def rename(filepath):
 
 
 def zlog(func):
+    """
+    Args:
+        func: A function to be decorated.
+
+    Returns:
+        A function wrapped around `func` which prints out
+        the time it took to run.
+    """
+
     def new_fn(*args):
         start = time.time()
         result = func(*args)
@@ -66,6 +74,9 @@ def getcvimage(image):
 
 
 def cshowone(image):
+    """
+    show cv image
+    """
     image = getcvimage(image)
     cv2.imshow("tmp", image)
     cv2.waitKey(3000)
@@ -73,12 +84,18 @@ def cshowone(image):
 
 
 def pshowone(image):
+    """
+    show PIL image
+    """
     image = getpilimage(image)
     image.show()
     return
 
 
 def cshowtwo(image1, image2):
+    """
+    show two cv images
+    """
     width = 800 / 2
     height = 500 / 2
     image1 = getpilimage(image1)
@@ -96,6 +113,9 @@ def cshowtwo(image1, image2):
 
 
 def pshowtwo(image1, image2):
+    """
+    show two PIL images
+    """
     width = int(800 / 2)
     height = int(500 / 2)
     image1 = getpilimage(image1)
@@ -124,6 +144,9 @@ def pil2cv(image):
 
 
 def cv2pil(image):
+    """
+    convert cv image to PIL
+    """
     assert isinstance(image, np.ndarray), "input image type is not cv2"
     if len(image.shape) == 2:
         return Image.fromarray(image)
@@ -147,16 +170,11 @@ def rgb2gray(filename):
     _, thresh = cv2.threshold(new_image, 0, 255, cv2.THRESH_OTSU)
     pshowone(thresh)
     image, contours, hierarchy = cv2.findContours(thresh, 3, 2)
-    # cnt = contours[0]
-    # hull = cv2.convexHull(cnt)
-    # image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
     print(len(contours))
     cv2.polylines(out_image, contours, True, 255)
-    # cv2.fillPoly(image, [cnt], 255)
     image = getpilimage(out_image)
     im = getpilimage(im)
     image = image.crop((3, 3, im.width + 3, im.height + 3))
-    # char_color = image.crop((3,3,char_image.width + 3, char_image.height + 3))
     image.show()
     return
 
@@ -172,23 +190,9 @@ def uniqueimg(filepath):
             continue
         fd = np.array(Image.open(filepath + filename))
         fmd5 = hashlib.md5(fd)
-        # print(fmd5.hexdigest())
-        # print(filename)
         ext = filename.split(".")[-1]
         shutil.move(filepath + filename, filepath + fmd5.hexdigest() + "." + ext)
-        # i += 1
 
 
 if __name__ == "__main__":
-    # print(sys.argv)
-    # rename(sys.argv[1])
-    # uniqueimg('/Users/ganyufei/temp/')
-    allimg = getlabeljson("/Users/ganyufei/Desktop/jiu_zheng/jiu_zheng.json")
-    print(
-        cal_sim_all(
-            allimg["20190113_092023.jpg"], allimg["NID 7333475056 (1) Front.jpg"]
-        )
-    )
-    # print(cal_sim_all(allimg['20190113_092023.jpg'], allimg['20190113_092023.jpg']))
-
-    # genpair(12)
+    pass

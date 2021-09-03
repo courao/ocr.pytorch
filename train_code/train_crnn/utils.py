@@ -13,8 +13,6 @@ def get_acc(output, label):
     total = output.shape[0]
     _, pred_label = output.max(1)
     num_correct = (pred_label == label).sum().item()
-    # print( pred_label.data.cpu().numpy() )
-    # print( label.data.cpu().numpy() )
     return 1.0 * num_correct / total
 
 
@@ -241,6 +239,18 @@ class averager(object):
 
 
 def oneHot(v, v_length, nc):
+    """
+    Inputs:
+        v:  A torch.LongTensor of nSamples x time, where each element is the
+            label of a character in the text.
+        v_length:  A 1D torch.LongTensor of length nSamples, where each element
+            is the length of the corresponding sequence in v.
+        nc:  Number of possible classes, e.g. nc=28 for FSDD
+    Outputs:
+        v_onehot:  A torch.FloatTensor of size nSamples x time x nc, where each
+            v_onehot[i, t, :] is the one-hot encoding of the t^th character in
+            the i^th sequence.
+    """
     batchSize = v_length.size(0)
     maxLength = v_length.max()
     v_onehot = torch.FloatTensor(batchSize, maxLength, nc).fill_(0)

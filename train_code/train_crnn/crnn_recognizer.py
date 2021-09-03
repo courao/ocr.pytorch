@@ -17,6 +17,17 @@ except Exception:
 
 # copy from mydataset
 class resizeNormalize(object):
+    """
+    Args:
+        size (sequence or int): Desired output size. If size is a sequence like
+            (h, w), output size will be matched to this. If size is an int,
+            smaller edge of the image will be matched to this number.
+            i.e, if height > width, then image will be rescaled to
+            (size * height / width, size)
+        interpolation (Any): Desired interpolation. Default is
+            PIL.Image.LANCZOS
+    """
+
     def __init__(self, size, interpolation=Image.LANCZOS, is_test=True):
         self.size = size
         self.interpolation = interpolation
@@ -47,6 +58,15 @@ class resizeNormalize(object):
 
 # copy from utils
 class strLabelConverter(object):
+    """
+    This class does the following:
+    1. Takes in a dictionary to map each character in the alphabet to a unique index.
+    2. The encode method takes a string and returns a PyTorch tensor of the corresponding
+       indices of the characters in the string.
+    3. The decode method takes a PyTorch tensor of the indices of the characters and
+       returns a string corresponding to it.
+    """
+
     def __init__(self, alphabet, ignore_case=False):
         self._ignore_case = ignore_case
         if self._ignore_case:
@@ -146,10 +166,4 @@ class PytorchOcr:
 
 
 if __name__ == "__main__":
-    model_path = "./crnn_models/CRNN-1008.pth"
-    recognizer = PytorchOcr(model_path)
-    img_name = "t1.jpg"
-    img = cv2.imread(img_name)
-    h, w = img.shape[:2]
-    res = recognizer.recognize(img)
-    print(res)
+    pass

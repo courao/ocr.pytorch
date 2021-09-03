@@ -13,7 +13,7 @@ import torchvision
 import torch
 import os
 
-strLabelConverter = importfile(filedir/'utils.py').strLabelConverter
+strLabelConverter = importfile(filedir / "utils.py").strLabelConverter
 
 
 class BidirectionalLSTM(nn.Module):
