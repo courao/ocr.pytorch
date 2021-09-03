@@ -15,12 +15,10 @@ Pull requests welcome!
 
 - python-3.6+
 - pytorch-lightning-1.4.1
-- pytorch-1.8.1
-- torchvision-0.9.1
 - opencv-4.5.2.52
 - numpy-1.21.1
 - Pillow-8.2.0
-- Paths-0.0.34
+- Paths-1.1.00
 
 
 ### Detection
