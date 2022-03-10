@@ -26,6 +26,8 @@ if __name__ == '__main__':
         output_file = os.path.join(result_dir, image_file.split('/')[-1])
         txt_file = os.path.join(result_dir, image_file.split('/')[-1].split('.')[0]+'.txt')
         print(txt_file)
+        if not os.path.isdir(os.path.dirname(txt_file)):
+            os.mkdir(os.path.dirname(txt_file))
         txt_f = open(txt_file, 'w')
         Image.fromarray(image_framed).save(output_file)
         print("Mission complete, it took {:.3f}s".format(time.time() - t))
